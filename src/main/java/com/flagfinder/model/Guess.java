@@ -8,9 +8,9 @@ import lombok.EqualsAndHashCode;
 
 @Data
 @Entity
-@Table(name = "games")
+@Table(name = "guesses")
 @EqualsAndHashCode(callSuper = false)
-public class Guess extends BaseEntity {
+public class Guess extends BaseEntity<Long>{
 
     @ManyToOne
     private Round round;

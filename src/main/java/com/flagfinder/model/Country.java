@@ -12,12 +12,15 @@ import java.util.List;
 @EqualsAndHashCode(callSuper = false)
 @Entity
 @Table(name = "countries")
-public class Country extends BaseEntity {
+public class Country extends  BaseEntity<Long> {
 
     @Column
     private String nameOfCounty;
 
-    @Column
+    @ElementCollection(targetClass = Continent.class)
+    @Enumerated(EnumType.STRING)
+    @CollectionTable(name = "country_continents", joinColumns = @JoinColumn(name = "country_id"))
+    @Column(name = "continent")
     private List<Continent> continents = new ArrayList<>();
 
     @Lob

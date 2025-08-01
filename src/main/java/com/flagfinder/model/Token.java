@@ -2,7 +2,10 @@ package com.flagfinder.model;
 
 import com.flagfinder.enumeration.TokenType;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * Entity representing an authentication token.
@@ -12,12 +15,11 @@ import lombok.*;
  * @since 1.0
  */
 @Data
-@EqualsAndHashCode(callSuper = false)
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-public class Token extends BaseEntity {
+public class Token extends BaseEntity<Long> {
     /**
      * The token value.
      */
@@ -33,12 +35,12 @@ public class Token extends BaseEntity {
     /**
      * Flag indicating if the token has been revoked.
      */
-    private boolean revoked;
+    public boolean revoked;
 
     /**
      * Flag indicating if the token has expired.
      */
-    private boolean expired;
+    public boolean expired;
 
     /**
      * The user associated with the token.
