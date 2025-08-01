@@ -9,7 +9,7 @@ import lombok.EqualsAndHashCode;
 @Table(name = "friendship")
 @Data
 @EqualsAndHashCode(callSuper = false)
-public class Friendship extends BaseEntity{
+public class Friendship extends BaseEntity<Long>{
 
     @ManyToOne
     private User sender;

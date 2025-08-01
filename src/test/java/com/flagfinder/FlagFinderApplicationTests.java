@@ -1,4 +1,4 @@
-package com.flagfinder.flagfinder;
+package com.mss;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

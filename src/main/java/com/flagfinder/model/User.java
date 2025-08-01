@@ -5,7 +5,10 @@ import com.flagfinder.enumeration.Role;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.hibernate.annotations.Filter;
 import org.hibernate.annotations.FilterDef;
 import org.hibernate.annotations.ParamDef;
@@ -15,7 +18,6 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
@@ -29,7 +31,6 @@ import java.util.List;
  * @since 1.0
  */
 @Data
-@EqualsAndHashCode(callSuper = false)
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -38,7 +39,7 @@ import java.util.List;
 @SQLDelete(sql = "UPDATE users SET deleted = true WHERE id=?")
 @FilterDef(name = "deletedUserFilter", parameters = @ParamDef(name = "isDeleted", type = Boolean.class))
 @Filter(name = "deletedUserFilter", condition = "deleted = :isDeleted")
-public class User extends BaseEntity implements UserDetails {
+public class User extends BaseEntity<Long> implements UserDetails {
 
     /**
      * The user's firstname.
@@ -130,18 +131,6 @@ public class User extends BaseEntity implements UserDetails {
     @OneToMany(mappedBy = "user")
     private List<Token> tokens;
 
-    @OneToMany(mappedBy = "user")
-    private List<Guess> guesses = new ArrayList<>();
-
-    @ManyToMany(mappedBy = "users")
-    private List<Game> games = new ArrayList<>();
-
-    @OneToMany(mappedBy = "sender")
-    private List<Friendship> sentRequests = new ArrayList<>();
-
-    @OneToMany(mappedBy = "receiver")
-    private List<Friendship> receivedRequests = new ArrayList<>();
-
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return role.getAuthorities();
@@ -160,11 +149,6 @@ public class User extends BaseEntity implements UserDetails {
     @Override
     public boolean isAccountNonExpired() {
         return true;
-    }
-
-    @Override
-    public boolean isAccountNonLocked() {
-        return Boolean.FALSE.equals(getDeleted());
     }
 
     @Override

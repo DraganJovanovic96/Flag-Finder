@@ -1,11 +1,11 @@
 package com.flagfinder.enumeration;
 
 public enum Continent {
-    AFRICA,
-    ANTARCTICA,
     ASIA,
-    AUSTRALIA,
-    EUROPE,
+    AFRICA,
     NORTH_AMERICA,
-    SOUTH_AMERICA
+    SOUTH_AMERICA,
+    ANTARCTICA,
+    EUROPE,
+    AUSTRALIA
 }
