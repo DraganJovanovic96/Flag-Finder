@@ -11,6 +11,7 @@ import org.springframework.stereotype.Repository;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Repository interface for managing tokens.
@@ -20,7 +21,7 @@ import java.util.Optional;
  * @since 1.0
  */
 @Repository
-public interface TokenRepository extends JpaRepository<Token, Long> {
+public interface TokenRepository extends JpaRepository<Token, UUID> {
 
     /**
      * Retrieves a list of valid tokens associated with a user.
@@ -33,7 +34,7 @@ public interface TokenRepository extends JpaRepository<Token, Long> {
             on t.user.id = u.id\s
             where u.id = :id and (t.expired = false or t.revoked = false)\s
             """)
-    List<Token> findAllValidTokenByUser(Long id);
+    List<Token> findAllValidTokenByUser(UUID id);
 
     /**
      * Retrieves a token by its value.
@@ -54,7 +55,7 @@ public interface TokenRepository extends JpaRepository<Token, Long> {
      */
     @Modifying
     @Query("DELETE FROM Token t WHERE t.id = :tokenId")
-    void permanentlyDeleteTokenById(Long tokenId);
+    void permanentlyDeleteTokenById(UUID tokenId);
 
     /**
      * Finds all tokens where the createdAt field is older than one week.
@@ -72,5 +73,5 @@ public interface TokenRepository extends JpaRepository<Token, Long> {
      */
     @Modifying
     @Query("DELETE FROM Token t WHERE t.id IN :tokenIds")
-    void deleteByIds(List<Long> tokenIds);
+    void deleteByIds(List<UUID> tokenIds);
 }

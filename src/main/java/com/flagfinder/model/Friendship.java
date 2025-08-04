@@ -9,13 +9,13 @@ import lombok.EqualsAndHashCode;
 @Table(name = "friendship")
 @Data
 @EqualsAndHashCode(callSuper = false)
-public class Friendship extends BaseEntity<Long>{
+public class Friendship extends BaseEntity{
 
     @ManyToOne
-    private User sender;
+    private User initiator;
 
     @ManyToOne
-    private User receiver;
+    private User target;
 
     @Enumerated(EnumType.STRING)
     private FriendshipStatus status;

@@ -39,7 +39,7 @@ import java.util.List;
 @SQLDelete(sql = "UPDATE users SET deleted = true WHERE id=?")
 @FilterDef(name = "deletedUserFilter", parameters = @ParamDef(name = "isDeleted", type = Boolean.class))
 @Filter(name = "deletedUserFilter", condition = "deleted = :isDeleted")
-public class User extends BaseEntity<Long> implements UserDetails {
+public class User extends BaseEntity implements UserDetails {
 
     /**
      * The user's firstname.
@@ -130,6 +130,13 @@ public class User extends BaseEntity<Long> implements UserDetails {
      */
     @OneToMany(mappedBy = "user")
     private List<Token> tokens;
+
+
+    @OneToMany(mappedBy = "initiator")
+    private List<Friendship> initiators;
+
+    @OneToMany(mappedBy = "target")
+    private List<Friendship> targets;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

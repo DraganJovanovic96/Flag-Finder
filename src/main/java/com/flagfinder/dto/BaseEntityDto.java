@@ -3,6 +3,7 @@ package com.flagfinder.dto;
 import lombok.Data;
 
 import java.time.Instant;
+import java.util.UUID;
 
 /**
  * Represents a base entity data transfer object with common attributes such as ID,
@@ -17,7 +18,7 @@ public class BaseEntityDto {
     /**
      * The unique identifier for entities.
      */
-    private Long id;
+    private UUID id;
 
     /**
      * The date and time when the entity was created.

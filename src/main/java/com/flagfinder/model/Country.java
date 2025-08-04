@@ -12,7 +12,7 @@ import java.util.List;
 @EqualsAndHashCode(callSuper = false)
 @Entity
 @Table(name = "countries")
-public class Country extends  BaseEntity<Long> {
+public class Country extends  BaseEntity {
 
     @Column
     private String nameOfCounty;
