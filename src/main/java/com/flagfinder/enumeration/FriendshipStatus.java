@@ -1,7 +1,7 @@
 package com.flagfinder.enumeration;
 
 public enum FriendshipStatus {
-    REQUESTED,
+    PENDING,
     ACCEPTED,
     DENIED
 }

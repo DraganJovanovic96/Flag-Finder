@@ -25,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Implementation of the User interface.
@@ -92,10 +93,10 @@ public class UserServiceImpl implements UserService {
      * Finds a user by their unique identifier.
      *
      * @param userId the unique identifier of the user to retrieve
-     * @return a {@link CustomerDto} representing the found user
+     * @return a {@link UserDto} representing the found user
      */
     @Override
-    public UserDto findUserById(Long userId) {
+    public UserDto findUserById(UUID userId) {
         User user = userRepository.findOneById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User with this id doesn't exist"));
 
@@ -254,7 +255,7 @@ public class UserServiceImpl implements UserService {
      */
     @Override
     @Transactional
-    public void deleteUser(Long userId) {
+    public void deleteUser(UUID userId) {
         userRepository.findById(userId)
                 .map(user -> {
                     if (user.getRole() == Role.ADMIN) {

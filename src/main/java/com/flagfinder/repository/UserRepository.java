@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Repository interface for managing users.
@@ -15,7 +16,7 @@ import java.util.Optional;
  * @since 1.0
  */
 @Repository
-public interface UserRepository extends JpaRepository<User, Long> {
+public interface UserRepository extends JpaRepository<User, UUID> {
     /**
      * Method that returns optional of User by email.
      *
@@ -30,7 +31,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * @param userId the id of the user
      * @return an Optional containing the user if found, or empty if not
      */
-    Optional<User> findOneById(Long userId);
+    Optional<User> findOneById(UUID userId);
 
     /**
      * Find a user by their password code.

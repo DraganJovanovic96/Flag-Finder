@@ -7,6 +7,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.UUID;
 
 /**
  * The UserService interface contains methods that will be implemented is UserServiceImpl and methods correlate
@@ -31,9 +32,9 @@ public interface UserService {
      * Finds a user by their unique identifier.
      *
      * @param userId the unique identifier of the user to retrieve
-     * @return a {@link CustomerDto} representing the found user
+     * @return a {@link UserDto} representing the found user
      */
-    UserDto findUserById(Long userId);
+    UserDto findUserById(UUID userId);
 
     /**
      * A method for retrieving all users implemented in UserServiceImpl class.
@@ -93,7 +94,7 @@ public interface UserService {
      *
      * @param userId parameter that is unique to entity
      */
-    void deleteUser(Long userId);
+    void deleteUser(UUID userId);
 
     /**
      * This method first calls the userRepository's findFilteredUsers method

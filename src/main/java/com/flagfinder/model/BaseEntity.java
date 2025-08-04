@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 
 import java.time.Instant;
+import java.util.UUID;
 
 /**
  * This class represents status information for entities in finance system.
@@ -16,13 +17,14 @@ import java.time.Instant;
  */
 @MappedSuperclass
 @Data
-public abstract class BaseEntity<T> {
+public abstract class BaseEntity {
     /**
      * The unique identifier for entities.
      */
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private T id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(columnDefinition = "UUID")
+    private UUID id;
 
     /**
      * The date and time when the entity was created.

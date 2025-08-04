@@ -10,7 +10,7 @@ import lombok.EqualsAndHashCode;
 @Entity
 @Table(name = "guesses")
 @EqualsAndHashCode(callSuper = false)
-public class Guess extends BaseEntity<Long>{
+public class Guess extends BaseEntity{
 
     @ManyToOne
     private Round round;

@@ -19,7 +19,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-public class Token extends BaseEntity<Long> {
+public class Token extends BaseEntity {
     /**
      * The token value.
      */

@@ -11,7 +11,7 @@ import java.util.List;
 @Entity
 @Table(name = "rounds")
 @EqualsAndHashCode(callSuper = false)
-public class Round extends BaseEntity<Long> {
+public class Round extends BaseEntity {
 
     @OneToMany(mappedBy = "round")
     private List<Guess> guesses = new ArrayList<>();

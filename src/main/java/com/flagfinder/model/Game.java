@@ -11,7 +11,7 @@ import java.util.List;
 @Entity
 @Table(name = "games")
 @EqualsAndHashCode(callSuper = false)
-public class Game extends BaseEntity<Long>{
+public class Game extends BaseEntity{
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(

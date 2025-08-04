@@ -6,7 +6,6 @@ import com.flagfinder.service.impl.AuthenticationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.UnsupportedEncodingException;
@@ -20,7 +19,7 @@ import java.io.UnsupportedEncodingException;
  */
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/register")
+@RequestMapping("/api/v1/auth/register")
 @CrossOrigin
 public class RegisterController {
     /**
@@ -35,7 +34,6 @@ public class RegisterController {
      * @return the ResponseEntity containing the authentication response
      */
     @PostMapping
-    @PreAuthorize("hasAnyAuthority('admin:create')")
     public ResponseEntity<AuthenticationResponseDto> register(
             @Valid @RequestBody RegisterRequestDto request
     ) throws UnsupportedEncodingException {
