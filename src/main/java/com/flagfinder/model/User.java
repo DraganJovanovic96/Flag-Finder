@@ -44,6 +44,12 @@ public class User extends BaseEntity implements UserDetails {
     /**
      * The user's firstname.
      */
+    @Column(unique = true,nullable = false)
+    private String userName;
+
+    /**
+     * The user's firstname.
+     */
     private String firstname;
 
     /**

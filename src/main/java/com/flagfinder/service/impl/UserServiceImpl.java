@@ -4,6 +4,7 @@ import com.flagfinder.dto.*;
 import com.flagfinder.enumeration.Role;
 import com.flagfinder.mapper.UserMapper;
 import com.flagfinder.model.User;
+import com.flagfinder.repository.FriendshipRepository;
 import com.flagfinder.repository.TokenRepository;
 import com.flagfinder.repository.UserCustomRepository;
 import com.flagfinder.repository.UserRepository;
@@ -16,9 +17,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -44,6 +42,8 @@ public class UserServiceImpl implements UserService {
      */
     private final UserRepository userRepository;
 
+    private final ExtractAuthenticatedUserService extractAuthenticatedUserService;
+
     /**
      * The repository used to retrieve token data.
      */
@@ -54,6 +54,7 @@ public class UserServiceImpl implements UserService {
      */
     private final UserCustomRepository userCustomRepository;
 
+    private final FriendshipRepository friendshipRepository;
     /**
      * The mapper used to map user data.
      */
@@ -85,6 +86,9 @@ public class UserServiceImpl implements UserService {
      */
     @Override
     public User findOneByEmail(String email) {
+        if(email == null || email.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND,"User doesn't exist");
+        }
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User with that email doesn't exist"));
     }
@@ -107,7 +111,7 @@ public class UserServiceImpl implements UserService {
      * A method for retrieving all users implemented in UserServiceImpl class.
      *
      * @param isDeleted parameter that checks if object is soft deleted
-     * @return a list of all UserDtos
+     * @return a list of all UserDto's
      */
     @Override
     public List<UserDto> getAllUsers(boolean isDeleted) {
@@ -124,14 +128,8 @@ public class UserServiceImpl implements UserService {
      */
     @Override
     public User getUserFromAuthentication() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication.getPrincipal() instanceof UserDetails) {
-            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-            String email = userDetails.getUsername();
-            return findOneByEmail(email);
-        } else {
-            throw new RuntimeException("Authentication object does not contain user details");
-        }
+        String email = extractAuthenticatedUserService.getAuthenticatedUser();
+        return findOneByEmail(email);
     }
 
     /**
@@ -142,15 +140,8 @@ public class UserServiceImpl implements UserService {
      */
     @Override
     public LocalStorageUserDto getLocalStorageUserDtoFromAuthentication() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication.getPrincipal() instanceof UserDetails) {
-            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-            String email = userDetails.getUsername();
-            User user = findOneByEmail(email);
+            User user = getUserFromAuthentication();
             return userMapper.userToLocalStorageUserDto(user);
-        } else {
-            throw new RuntimeException("Authentication object does not contain user details");
-        }
     }
 
     /**
@@ -160,15 +151,8 @@ public class UserServiceImpl implements UserService {
      */
     @Override
     public UserUpdateDto getUserDtoFromAuthentication() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication.getPrincipal() instanceof UserDetails) {
-            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-            String email = userDetails.getUsername();
-            User user = findOneByEmail(email);
-            return userMapper.userToUserUpdateDto(user);
-        } else {
-            throw new RuntimeException("Authentication object does not contain user details");
-        }
+        User user = getUserFromAuthentication();
+        return userMapper.userToUserUpdateDto(user);
     }
 
     /**
@@ -178,11 +162,7 @@ public class UserServiceImpl implements UserService {
      */
     @Override
     public UserUpdateDto updateUser(UserUpdateDto userUpdateDto) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication.getPrincipal() instanceof UserDetails) {
-            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-            String email = userDetails.getUsername();
-            User user = findOneByEmail(email);
+        User user = getUserFromAuthentication();
             user.setFirstname(userUpdateDto.getFirstname());
             user.setLastname(userUpdateDto.getLastname());
             user.setEmail(userUpdateDto.getEmail());
@@ -193,15 +173,12 @@ public class UserServiceImpl implements UserService {
             userRepository.save(user);
 
             return userMapper.userToUserUpdateDto(user);
-        } else {
-            throw new RuntimeException("Authentication object does not contain user details");
-        }
     }
 
     /**
      * Update the user by admin from id.
      *
-     * @param userUpdateDto
+     * @param userUpdateDto dto for updating user
      * @return The UserUpdateDto object representing the authenticated user details.
      */
     @Override
@@ -224,7 +201,7 @@ public class UserServiceImpl implements UserService {
     /**
      * Update the user associated with the current authentication context.
      *
-     * @param passwordChangeDto
+     * @param passwordChangeDto dto for changing password
      */
     @Override
     public void changePassword(PasswordChangeDto passwordChangeDto) {
@@ -232,20 +209,12 @@ public class UserServiceImpl implements UserService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "New passwords don't match");
         }
 
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication.getPrincipal() instanceof UserDetails) {
-            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-            String email = userDetails.getUsername();
-            User user = findOneByEmail(email);
-
+        User user = getUserFromAuthentication();
             if (!passwordEncoder.matches(passwordChangeDto.getPassword(), user.getPassword())) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Incorrect password");
             }
             user.setPassword(passwordEncoder.encode(passwordChangeDto.getNewPassword()));
             userRepository.save(user);
-        } else {
-            throw new RuntimeException("Authentication object does not contain user details");
-        }
     }
 
     /**
@@ -262,9 +231,7 @@ public class UserServiceImpl implements UserService {
                         throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Admin cannot be deleted");
                     }
 
-                    user.getTokens().forEach(token -> {
-                        tokenRepository.permanentlyDeleteTokenById(token.getId());
-                    });
+                    user.getTokens().forEach(token -> tokenRepository.permanentlyDeleteTokenById(token.getId()));
 
                     userRepository.save(user);
                     userRepository.flush();

@@ -91,6 +91,7 @@ public class AuthenticationService {
         var user = User.builder()
                 .firstname(request.getFirstname())
                 .lastname(request.getLastname())
+                .userName(request.getUserName())
                 .email(request.getEmail())
                 .imageUrl(request.getImageUrl())
                 .mobileNumber(request.getMobileNumber())
@@ -102,8 +103,9 @@ public class AuthenticationService {
         String token = generateVerificationCode();
         user.setVerificationCode(passwordEncoder.encode(token));
         user.setVerificationExpiration(LocalDateTime.now().plusHours(3));
-        user.setEnabled(false);
-        sendVerificationEmail(token, user.getEmail());
+        //todo change enabled status and send verification
+        user.setEnabled(true);
+//        sendVerificationEmail(token, user.getEmail());
         var savedUser = repository.save(user);
         var jwtToken = jwtService.generateToken(user);
         var refreshToken = jwtService.generateRefreshToken(user);
