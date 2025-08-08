@@ -18,5 +18,5 @@ public class Friendship extends BaseEntity{
     private User target;
 
     @Enumerated(EnumType.STRING)
-    private FriendshipStatus status;
+    private FriendshipStatus friendshipStatus;
 }

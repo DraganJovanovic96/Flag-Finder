@@ -1,4 +1,4 @@
-package com.mss.service;
+package com.flagfinder.service;
 
 import jakarta.mail.MessagingException;
 

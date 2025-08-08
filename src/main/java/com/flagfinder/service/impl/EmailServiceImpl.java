@@ -1,6 +1,6 @@
 package com.flagfinder.service.impl;
 
-import com.mss.service.EmailService;
+import com.flagfinder.service.EmailService;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;

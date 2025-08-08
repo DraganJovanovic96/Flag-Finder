@@ -3,6 +3,8 @@ package com.flagfinder.repository;
 import com.flagfinder.enumeration.FriendshipStatus;
 import com.flagfinder.model.Friendship;
 import com.flagfinder.model.User;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -18,12 +20,11 @@ public interface FriendshipRepository extends JpaRepository<Friendship, UUID> {
     @Query("""
     SELECT f FROM Friendship f
     WHERE (f.initiator.id = :userId OR f.target.id = :userId)
-    AND f.status = :status
+    AND f.friendshipStatus = :friendshipStatus
 """)
-    List<Friendship> findAllFriendshipsOfUser(@Param("userId") UUID userId, @Param("status") FriendshipStatus status);
+    List<Friendship> findAllFriendshipsOfUser(@Param("userId") UUID userId, @Param("friendshipStatus") FriendshipStatus friendshipStatus);
 
     Optional<Friendship> findByInitiatorAndTarget(User initiator, User target);
 
-    List<Friendship> findByTargetAndStatus(User target, FriendshipStatus status);
-
+    Page<Friendship> findByTargetAndFriendshipStatus(User target, FriendshipStatus friendshipStatus, Pageable pageable);
 }

@@ -34,4 +34,11 @@ public class MapStructConfig {
         return Mappers.getMapper(com.flagfinder.mapper.UserMapper.class);
     }
 
+    /**
+     * This method creates a bean of friendshipMapper, so it can be used by IoC.
+     */
+    @Bean
+    public com.flagfinder.mapper.FriendshipMapper friendshipMapper() {
+        return Mappers.getMapper(com.flagfinder.mapper.FriendshipMapper.class);
+    }
 }

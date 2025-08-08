@@ -88,6 +88,12 @@ public class SecurityConfiguration {
                         )
                         .permitAll()
 
+                        .requestMatchers("/api/v1/friend-requests").hasAnyRole(ADMIN.name(), USER.name())
+                        .requestMatchers(GET, "/api/v1/friend-requests").hasAnyAuthority(ADMIN_READ.name(), USER_READ.name())
+                        .requestMatchers(POST, "/api/v1/friend-requests").hasAnyAuthority(ADMIN_CREATE.name(), USER_CREATE.name())
+                        .requestMatchers(DELETE, "/api/v1/friend-requests").hasAnyAuthority(ADMIN_DELETE.name(), USER_DELETE.name())
+
+
                         .requestMatchers("/api/v1/customers").hasAnyRole(ADMIN.name(), USER.name())
                         .requestMatchers(GET, "/api/v1/customers").hasAnyAuthority(ADMIN_READ.name(), USER_READ.name())
                         .requestMatchers(POST, "/api/v1/customers").hasAnyAuthority(ADMIN_CREATE.name(), USER_CREATE.name())

@@ -2,6 +2,8 @@ package com.flagfinder.dto;
 
 
 import com.flagfinder.enumeration.Role;
+import com.flagfinder.validatior.UniqueKey;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -24,6 +26,16 @@ import java.time.LocalDate;
 @AllArgsConstructor
 @NoArgsConstructor
 public class RegisterRequestDto {
+
+    /**
+     * The username of the user.
+     */
+    @NotBlank(message = "Username is required")
+    @NotNull(message = "Username is required")
+    @UniqueKey(message = "Username is already taken")
+    private String userName;
+
+
     /**
      * The first name of the user.
      */
@@ -37,6 +49,9 @@ public class RegisterRequestDto {
     /**
      * The email of the user.
      */
+    @NotBlank(message = "Email is required")
+    @NotNull(message = "Email is required")
+    @UniqueKey(message = "Email is already taken")
     private String email;
 
     /**

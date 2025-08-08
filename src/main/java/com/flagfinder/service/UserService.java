@@ -88,7 +88,7 @@ public interface UserService {
      *
      */
     void changePassword(PasswordChangeDto passwordChangeDto);
-
+    
     /**
      * A method for deleting user. It is implemented in UserServiceImpl class.
      *
