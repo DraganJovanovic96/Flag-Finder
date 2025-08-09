@@ -2,7 +2,7 @@ package com.flagfinder.controller;
 
 import com.flagfinder.dto.FriendRequestResponseDto;
 import com.flagfinder.dto.FriendshipDto;
-import com.flagfinder.dto.SendFriendRequestDto;
+import com.flagfinder.dto.SendUserNameDto;
 import com.flagfinder.service.FriendshipService;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiResponse;
@@ -22,7 +22,7 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/friend-requests")
+@RequestMapping("/api/v1/friends")
 @CrossOrigin
 public class FriendRequestController {
 
@@ -36,7 +36,7 @@ public class FriendRequestController {
      * and returns a ResponseEntity object with status code 201 (Created) and the saved ServiceDto
      * object in the response body.
      *
-     * @param sendFriendRequestDto the DTO containing the information for the new service to be created
+     * @param sendUserNameDto the DTO containing the information for the new service to be created
      * @return a ResponseEntity object with status code 201 (Created) and the saved ServiceDto
      * object in the response body
      */
@@ -44,13 +44,13 @@ public class FriendRequestController {
     @PreAuthorize("hasAnyAuthority('admin:create', 'user:create')")
     @ApiOperation(value = "Send friend request")
     @ApiResponses(value = {
-            @ApiResponse(code = 201, message = "Successfully sent friend request .", response = SendFriendRequestDto.class),
+            @ApiResponse(code = 201, message = "Successfully sent friend request .", response = SendUserNameDto.class),
             @ApiResponse(code = 409, message = "Friend request already sent.")
     })
-    public ResponseEntity<FriendshipDto> sendFriendRequest(@Valid @RequestBody SendFriendRequestDto
-                                                           sendFriendRequestDto) {
+    public ResponseEntity<FriendshipDto> sendFriendRequest(@Valid @RequestBody SendUserNameDto
+                                                                   sendUserNameDto) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(friendshipService.sendFriendRequest(sendFriendRequestDto));
+                .body(friendshipService.sendFriendRequest(sendUserNameDto));
     }
 
     @PutMapping(consumes = MediaType.APPLICATION_JSON_VALUE, path = "/friend-request-response")
@@ -65,7 +65,7 @@ public class FriendRequestController {
                 .body(friendshipService.respondToFriendRequest(friendRequestResponseDto));
     }
 
-    @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE, path = "/requests")
     @PreAuthorize("hasAnyAuthority('admin:read', 'user:read')")
     @ApiOperation(value = "Friend requests")
     @ApiResponses(value = {
@@ -74,6 +74,24 @@ public class FriendRequestController {
     public  ResponseEntity<List<FriendshipDto>> getFriendRequests(@RequestParam(value = "page", defaultValue = "0") int page,
                                                                   @RequestParam(value = "pageSize", defaultValue = "5") @Min(1) int pageSize) {
         Page<FriendshipDto> resultPage = friendshipService.findAllFriendShipRequests(page, pageSize);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("X-Total-Items", String.valueOf(resultPage.getTotalElements()));
+        headers.add("X-Total-Pages", String.valueOf(resultPage.getTotalPages()));
+        headers.add("X-Current-Page", String.valueOf(resultPage.getNumber()));
+
+        return new ResponseEntity<>(resultPage.getContent(), headers, HttpStatus.OK);
+    }
+
+    @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasAnyAuthority('admin:read', 'user:read')")
+    @ApiOperation(value = "Friends")
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Successfully fetched friends.", response = FriendRequestResponseDto.class),
+    })
+    public  ResponseEntity<List<FriendshipDto>> getFriends(@RequestParam(value = "page", defaultValue = "0") int page,
+                                                                  @RequestParam(value = "pageSize", defaultValue = "5") @Min(1) int pageSize) {
+        Page<FriendshipDto> resultPage = friendshipService.findAllFriends(page, pageSize);
 
         HttpHeaders headers = new HttpHeaders();
         headers.add("X-Total-Items", String.valueOf(resultPage.getTotalElements()));

@@ -3,6 +3,6 @@ package com.flagfinder.dto;
 import lombok.Data;
 
 @Data
-public class SendFriendRequestDto {
+public class SendUserNameDto {
     private String userName;
 }

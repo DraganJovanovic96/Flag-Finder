@@ -10,7 +10,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -22,7 +21,7 @@ public interface FriendshipRepository extends JpaRepository<Friendship, UUID> {
     WHERE (f.initiator.id = :userId OR f.target.id = :userId)
     AND f.friendshipStatus = :friendshipStatus
 """)
-    List<Friendship> findAllFriendshipsOfUser(@Param("userId") UUID userId, @Param("friendshipStatus") FriendshipStatus friendshipStatus);
+    Page<Friendship> findAllFriendshipsOfUser(@Param("userId") UUID userId, @Param("friendshipStatus") FriendshipStatus friendshipStatusm,  Pageable pageable);
 
     Optional<Friendship> findByInitiatorAndTarget(User initiator, User target);
 
