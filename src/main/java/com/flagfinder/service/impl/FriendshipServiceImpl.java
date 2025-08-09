@@ -2,7 +2,7 @@ package com.flagfinder.service.impl;
 
 import com.flagfinder.dto.FriendRequestResponseDto;
 import com.flagfinder.dto.FriendshipDto;
-import com.flagfinder.dto.SendFriendRequestDto;
+import com.flagfinder.dto.SendUserNameDto;
 import com.flagfinder.enumeration.FriendshipStatus;
 import com.flagfinder.mapper.FriendshipMapper;
 import com.flagfinder.model.Friendship;
@@ -36,9 +36,9 @@ public class FriendshipServiceImpl implements FriendshipService {
     private final FriendshipMapper friendshipMapper;
 
     @Override
-    public FriendshipDto sendFriendRequest(@Valid SendFriendRequestDto sendFriendRequestDto) {
+    public FriendshipDto sendFriendRequest(@Valid SendUserNameDto sendUserNameDto) {
             User target = userRepository
-                    .findOneByUserNameIgnoreCase(sendFriendRequestDto.getUserName())
+                    .findOneByUserNameIgnoreCase(sendUserNameDto.getUserName())
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User doesn't exist"));
 
               User initiator = userService.getUserFromAuthentication();
@@ -53,7 +53,7 @@ public class FriendshipServiceImpl implements FriendshipService {
                     throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Friendship request already exists.");
                 }
 
-                if(currentFriendship.isPresent() && currentFriendship.get().getFriendshipStatus() == FriendshipStatus.DENIED) {
+                if(currentFriendship.isPresent() && currentFriendship.get().getFriendshipStatus() == FriendshipStatus.DECLINE) {
                    friendshipRepository.delete(currentFriendship.get());
                  }
 
@@ -104,5 +104,15 @@ public class FriendshipServiceImpl implements FriendshipService {
 
        List<FriendshipDto> friendshipDtos = friendshipMapper.friendshipsToFriendshipDtos(friendships);
        return new PageImpl<>(friendshipDtos, resultPage.getPageable(), resultPage.getTotalElements());
+    }
+
+    @Override
+    public Page<FriendshipDto> findAllFriends(Integer page, Integer pageSize) {
+        User user = userService.getUserFromAuthentication();
+        Page<Friendship> resultPage = friendshipRepository.findAllFriendshipsOfUser(user.getId(), FriendshipStatus.ACCEPTED, PageRequest.of(page, pageSize));
+        List<Friendship> friendships = resultPage.getContent();
+
+        List<FriendshipDto> friendshipDtos = friendshipMapper.friendshipsToFriendshipDtos(friendships);
+        return new PageImpl<>(friendshipDtos, resultPage.getPageable(), resultPage.getTotalElements());
     }
 }
