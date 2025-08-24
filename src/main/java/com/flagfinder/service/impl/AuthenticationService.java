@@ -91,7 +91,7 @@ public class AuthenticationService {
         var user = User.builder()
                 .firstname(request.getFirstname())
                 .lastname(request.getLastname())
-                .userName(request.getUserName())
+                .gameName(request.getUserName())
                 .email(request.getEmail())
                 .imageUrl(request.getImageUrl())
                 .mobileNumber(request.getMobileNumber())

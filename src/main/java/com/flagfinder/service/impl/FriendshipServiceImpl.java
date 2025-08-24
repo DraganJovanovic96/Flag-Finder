@@ -38,7 +38,7 @@ public class FriendshipServiceImpl implements FriendshipService {
     @Override
     public FriendshipDto sendFriendRequest(@Valid SendUserNameDto sendUserNameDto) {
             User target = userRepository
-                    .findOneByUserNameIgnoreCase(sendUserNameDto.getUserName())
+                    .findOneByGameNameIgnoreCase(sendUserNameDto.getUserName())
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User doesn't exist"));
 
               User initiator = userService.getUserFromAuthentication();
@@ -78,7 +78,7 @@ public class FriendshipServiceImpl implements FriendshipService {
 
         User target = userService.getUserFromAuthentication();
 
-        User initiator = userRepository.findOneByUserNameIgnoreCase(friendRequestResponseDto.getInitiatorUserName())
+        User initiator = userRepository.findOneByGameNameIgnoreCase(friendRequestResponseDto.getInitiatorUserName())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User doesn't exist."));
 
         Friendship friendship = friendshipRepository.findByInitiatorAndTarget(initiator, target)
