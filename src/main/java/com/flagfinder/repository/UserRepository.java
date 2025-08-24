@@ -39,7 +39,7 @@ public interface UserRepository extends JpaRepository<User, UUID> {
      * @param userName the username of the user
      * @return an Optional containing the user if found, or empty if not
      */
-    Optional<User> findOneByUserNameIgnoreCase(String userName);
+    Optional<User> findOneByGameNameIgnoreCase(String userName);
 
     /**
      * Find a user by their password code.
@@ -57,5 +57,5 @@ public interface UserRepository extends JpaRepository<User, UUID> {
      */
     Optional <User> findOneByVerificationCode(String verificationCode);
 
-    boolean existsByUserNameIgnoreCase(String userName);
+    boolean existsByGameNameIgnoreCase(String userName);
 }

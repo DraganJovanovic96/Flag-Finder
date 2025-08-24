@@ -17,6 +17,6 @@ public class UniqueKeyValidator implements ConstraintValidator<UniqueKey, String
         if (userName == null || userName.trim().isEmpty()) {
             return true;
         }
-        return !userRepository.existsByUserNameIgnoreCase(userName);
+        return !userRepository.existsByGameNameIgnoreCase(userName);
     }
 }

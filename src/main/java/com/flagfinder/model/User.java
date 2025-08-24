@@ -45,7 +45,7 @@ public class User extends BaseEntity implements UserDetails {
      * The user's firstname.
      */
     @Column(unique = true,nullable = false)
-    private String userName;
+    private String gameName;
 
     /**
      * The user's firstname.
@@ -143,6 +143,12 @@ public class User extends BaseEntity implements UserDetails {
 
     @OneToMany(mappedBy = "target")
     private List<Friendship> targets;
+
+    @OneToOne(mappedBy = "host")
+    private Room hostedRoom;
+
+    @OneToOne(mappedBy = "guest")
+    private Room guestRoom;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

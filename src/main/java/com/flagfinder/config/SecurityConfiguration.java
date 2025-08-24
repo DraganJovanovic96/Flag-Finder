@@ -92,47 +92,12 @@ public class SecurityConfiguration {
                         .requestMatchers(GET, "/api/v1/friend-requests").hasAnyAuthority(ADMIN_READ.name(), USER_READ.name())
                         .requestMatchers(POST, "/api/v1/friend-requests").hasAnyAuthority(ADMIN_CREATE.name(), USER_CREATE.name())
                         .requestMatchers(DELETE, "/api/v1/friend-requests").hasAnyAuthority(ADMIN_DELETE.name(), USER_DELETE.name())
-
-
-                        .requestMatchers("/api/v1/customers").hasAnyRole(ADMIN.name(), USER.name())
-                        .requestMatchers(GET, "/api/v1/customers").hasAnyAuthority(ADMIN_READ.name(), USER_READ.name())
-                        .requestMatchers(POST, "/api/v1/customers").hasAnyAuthority(ADMIN_CREATE.name(), USER_CREATE.name())
-                        .requestMatchers(DELETE, "/api/v1/customers").hasAnyAuthority(ADMIN_DELETE.name(), USER_DELETE.name())
-
-                        .requestMatchers("/api/v1/services").hasAnyRole(ADMIN.name(), USER.name())
-                        .requestMatchers(GET, "/api/v1/services").hasAnyAuthority(ADMIN_READ.name(), USER_READ.name())
-                        .requestMatchers(POST, "/api/v1/services").hasAnyAuthority(ADMIN_CREATE.name(), USER_CREATE.name())
-                        .requestMatchers(DELETE, "/api/v1/services").hasAnyAuthority(ADMIN_DELETE.name(), USER_DELETE.name())
-
+                        
                         .requestMatchers("/api/v1/register").hasAnyRole(ADMIN.name())
                         .requestMatchers(POST,"/api/v1/register").hasAnyAuthority(ADMIN_CREATE.name())
 
-                        .requestMatchers("/api/v1/service-types").hasAnyRole(ADMIN.name(), USER.name())
-                        .requestMatchers(GET, "/api/v1/service-types").hasAnyAuthority(ADMIN_READ.name(), USER_READ.name())
-                        .requestMatchers(POST, "/api/v1/service-types").hasAnyAuthority(ADMIN_CREATE.name(), USER_CREATE.name())
-                        .requestMatchers(DELETE, "/api/v1/service-types").hasAnyAuthority(ADMIN_DELETE.name(), USER_DELETE.name())
-                        .requestMatchers(PUT, "/api/v1/service-types").hasAnyAuthority(ADMIN_UPDATE.name(),USER_UPDATE.name())
-
-                        .requestMatchers("/api/v1/vehicles").hasAnyRole(ADMIN.name(), USER.name())
-                        .requestMatchers(GET, "/api/v1/vehicles").hasAnyAuthority(ADMIN_READ.name(), USER_READ.name())
-                        .requestMatchers(POST, "/api/v1/vehicles").hasAnyAuthority(ADMIN_CREATE.name(), USER_CREATE.name())
-                        .requestMatchers(DELETE, "/api/v1/vehicles").hasAnyAuthority(ADMIN_DELETE.name(), USER_DELETE.name())
-                        .requestMatchers(PUT, "/api/v1/vehicles").hasAnyAuthority(ADMIN_UPDATE.name(),USER_UPDATE.name())
-
                         .requestMatchers(DELETE, "/api/v1/users").hasAnyAuthority(ADMIN_DELETE.name())
                         .requestMatchers(PUT, "/api/v1/users").hasAnyAuthority(ADMIN_UPDATE.name(),USER_UPDATE.name())
-
-                        .requestMatchers("/api/v1/download-invoice/*").hasAnyRole(ADMIN.name(), USER.name())
-                        .requestMatchers(GET, "/api/v1/download-invoice/*").hasAnyAuthority(ADMIN_READ.name(), USER_READ.name())
-
-                        .requestMatchers("/api/v1/dashboard").hasAnyRole(ADMIN.name(), USER.name())
-                        .requestMatchers(GET, "/api/v1/dashboard").hasAnyAuthority(ADMIN_READ.name(), USER_READ.name())
-
-                        .requestMatchers("/api/v1/revenue").hasAnyRole(ADMIN.name(), USER.name())
-                        .requestMatchers(POST, "/api/v1/revenue").hasAnyAuthority(ADMIN_CREATE.name(), USER_CREATE.name())
-
-                        .requestMatchers("/api/v1/email").hasAnyRole(ADMIN.name(), USER.name())
-                        .requestMatchers(POST, "/api/v1/revenue").hasAnyAuthority(ADMIN_CREATE.name(), USER_CREATE.name())
 
                         .anyRequest()
                         .authenticated()

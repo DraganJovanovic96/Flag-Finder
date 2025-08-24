@@ -1,9 +1,11 @@
 package com.flagfinder.model;
 
+import com.flagfinder.enumeration.GameStatus;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -23,4 +25,26 @@ public class Game extends BaseEntity{
 
     @OneToMany(mappedBy = "game")
     private List<Round> rounds = new ArrayList<>();
+    
+    @Column(name = "started_at")
+    private LocalDateTime startedAt;
+    
+    @Column(name = "ended_at")
+    private LocalDateTime endedAt;
+    
+    @Column(name = "winner_user_name")
+    private String winnerUserName;
+    
+    @Column(name = "host_score")
+    private Integer hostScore;
+    
+    @Column(name = "guest_score")
+    private Integer guestScore;
+    
+    @Column(name = "total_rounds")
+    private Integer totalRounds;
+    
+    @Enumerated(EnumType.STRING)
+    @Column(name = "game_status")
+    private GameStatus status;
 }
