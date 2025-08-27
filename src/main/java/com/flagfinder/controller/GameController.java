@@ -36,4 +36,4 @@ public class GameController {
         List<Game> games = gameService.getGamesByUser(userName);
         return ResponseEntity.ok(games);
     }
-} 
+}

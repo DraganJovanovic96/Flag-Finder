@@ -68,6 +68,11 @@ public class AuthenticationService {
     private final com.flagfinder.service.impl.EmailServiceImpl emailService;
 
     /**
+     * The Service used to handle logout operations.
+     */
+    private final LogoutService logoutService;
+
+    /**
      * The characters used to create password code.
      */
     private static final String CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -473,5 +478,15 @@ public class AuthenticationService {
         }
 
         return verificationCode.toString();
+    }
+
+    /**
+     * Logs out the current user by invalidating their token.
+     *
+     * @param request the HttpServletRequest containing the authorization header
+     * @param response the HttpServletResponse
+     */
+    public void logout(HttpServletRequest request, HttpServletResponse response) {
+        logoutService.logout(request, response, null);
     }
 }

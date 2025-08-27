@@ -15,7 +15,7 @@ spring:
         jwk-set-uri: https://www.googleapis.com/oauth2/v3/certs
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: update
     show-sql: false
     properties:
       hibernate:

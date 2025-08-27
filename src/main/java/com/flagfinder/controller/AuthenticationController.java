@@ -139,4 +139,20 @@ public class AuthenticationController {
         return ResponseEntity.status(HttpStatus.OK)
                 .body(service.resetPassword(token, email, passwordResetDto));
     }
+
+    /**
+     * Logs out the current user by invalidating their token.
+     *
+     * @param request the HttpServletRequest containing the authorization header
+     * @param response the HttpServletResponse
+     * @return a ResponseEntity with status OK if logout is successful
+     */
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(
+            HttpServletRequest request,
+            HttpServletResponse response
+    ) {
+        service.logout(request, response);
+        return ResponseEntity.ok().body("Successfully logged out");
+    }
 }

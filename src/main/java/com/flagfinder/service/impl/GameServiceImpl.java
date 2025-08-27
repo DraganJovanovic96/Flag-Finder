@@ -23,8 +23,6 @@ public class GameServiceImpl implements GameService {
     
     @Override
     public Game inviteToPlay(SendUserNameDto sendUserNameDto) {
-        // This method is kept for backward compatibility
-        // In the new multiplayer system, this would be handled by the room system
         log.warn("inviteToPlay method is deprecated. Use room system instead.");
         return null;
     }
@@ -37,8 +35,6 @@ public class GameServiceImpl implements GameService {
     
     @Override
     public List<Game> getGamesByUser(String userName) {
-        // This would need a custom query in the repository
-        // For now, we'll get all games and filter by user
         return gameRepository.findAll().stream()
                 .filter(game -> game.getUsers().stream()
                         .anyMatch(user -> userName.equals(user.getGameName())))
@@ -51,4 +47,4 @@ public class GameServiceImpl implements GameService {
                 .filter(game -> GameStatus.COMPLETED.equals(game.getStatus()))
                 .toList();
     }
-} 
+}

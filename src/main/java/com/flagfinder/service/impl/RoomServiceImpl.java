@@ -1,9 +1,6 @@
 package com.flagfinder.service.impl;
 
-import com.flagfinder.dto.InviteFriendRequestDto;
-import com.flagfinder.dto.InviteSentDto;
-import com.flagfinder.dto.JoinRoomRequestDto;
-import com.flagfinder.dto.RoomDto;
+import com.flagfinder.dto.*;
 import com.flagfinder.enumeration.RoomStatus;
 import com.flagfinder.mapper.RoomMapper;
 import com.flagfinder.model.Room;
@@ -14,10 +11,13 @@ import com.flagfinder.service.RoomService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Objects;
+import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -29,15 +29,23 @@ public class RoomServiceImpl implements RoomService {
     private final RoomMapper roomMapper;
     private static final String USER_NOT_PRESENT = "User doesn't exist.";
     private final ExtractAuthenticatedUserService extractAuthenticatedUserService;
+    private final SimpMessagingTemplate messagingTemplate;
 
-    
+
     @Override
     public RoomDto createRoom() {
         User host = userRepository.findByEmail(extractAuthenticatedUserService.getAuthenticatedUser())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, USER_NOT_PRESENT));
 
-        if(roomRepository.findOneByHost(host).isPresent() || roomRepository.findOneByGuest(host).isPresent()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "User is currently in a room");
+        Optional<Room> roomAsHost = roomRepository.findOneByHost(host);
+        Optional<Room> roomAsGuest = roomRepository.findOneByGuest(host);
+
+        roomAsHost.ifPresent(roomRepository::delete);
+
+        if (roomAsGuest.isPresent()) {
+            Room guestRoom = roomAsGuest.get();
+            guestRoom.setGuest(null);
+            roomRepository.save(guestRoom);
         }
 
         Room room = new Room();
@@ -67,12 +75,24 @@ public class RoomServiceImpl implements RoomService {
         room.setGuest(guest);
         room.setStatus(RoomStatus.ROOM_READY_FOR_START);
         roomRepository.save(room);
-        //TODO: Send websocket notif here so their screen is updated with guests info
+
+        try {
+            var roomDto = roomMapper.roomToRoomDtoMapper(room);
+            messagingTemplate.convertAndSendToUser(
+                    room.getHost().getGameName(),
+                    "/queue/room-updates",
+                    roomDto
+            );
+        } catch (Exception e) {
+            log.warn("Failed to send room update to host {}: {}", room.getHost().getGameName(), e.getMessage());
+        }
         return roomMapper.roomToRoomDtoMapper(room);
     }
     
     @Override
     public InviteSentDto inviteFriend(InviteFriendRequestDto inviteFriendRequestDto) {
+        System.out.println("this has been hit");
+
         User user = userRepository.findByEmail(extractAuthenticatedUserService.getAuthenticatedUser())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, USER_NOT_PRESENT));
 
@@ -94,8 +114,21 @@ public class RoomServiceImpl implements RoomService {
         if (room.getHost().getGameName().equals(inviteFriendRequestDto.getFriendUserName())) {
             throw new IllegalArgumentException("Cannot join your own room");
         }
-        
-        // TODO: Send a WebSocket notification to the friend
+
+        String targetUserName = inviteFriendRequestDto.getFriendUserName();
+        User targetUser = userRepository.findOneByGameNameIgnoreCase(targetUserName)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Friend doesn't exist."));
+
+        GameInviteDto payload = new GameInviteDto();
+        payload.setGameId(room.getId());
+        payload.setTargetUserName(targetUserName);
+        payload.setInitiatorUserName(user.getGameName());
+
+        messagingTemplate.convertAndSendToUser(
+                targetUser.getGameName(),
+                "/queue/invites",
+                payload
+        );
 
         InviteSentDto inviteSentDto = new InviteSentDto();
         inviteSentDto.setRoomId(room.getId());
@@ -104,25 +137,57 @@ public class RoomServiceImpl implements RoomService {
         return inviteSentDto;
     }
 
-    //TODO leaves a room methods for guest and host, guest can leave the room and thats it if host leaves kill the room
     @Override
     public void leaveRoom() {
+ 
+         User user = userRepository.findByEmail(extractAuthenticatedUserService.getAuthenticatedUser())
+                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,"User is not found"));
 
-        User user = userRepository.findByEmail(extractAuthenticatedUserService.getAuthenticatedUser())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,"User is not found"));
+         Room room = roomRepository.findOneByUser(user)
+                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User is not in any room"));
+ 
+        log.info("Found room {} with host: {}, guest: {}, status: {}", 
+                room.getId(), 
+                room.getHost().getGameName(), 
+                room.getGuest() != null ? room.getGuest().getGameName() : "null",
+                room.getStatus());
 
-        Room room = roomRepository.findOneByUser(user)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User is not in any room"));
-
-         if (room.getHost().equals(user)) {
+          if (room.getHost().equals(user)) {
+            if (room.getGuest() != null) {
+                try {
+                    messagingTemplate.convertAndSendToUser(
+                            room.getGuest().getGameName(),
+                            "/queue/room-closed",
+                            "HOST_LEFT"
+                    );
+                } catch (Exception e) {
+                    log.warn("Failed to notify guest {} about room close: {}", room.getGuest().getGameName(), e.getMessage());
+                }
+            }
             roomRepository.delete(room);
-
             return;
         }
-        //TODO: Send weboscket noti to host
-         room.setGuest(null);
-         room.setStatus(RoomStatus.WAITING_FOR_GUEST);
-         roomRepository.save(room);
+
+        room.setGuest(null);
+        room.setStatus(RoomStatus.WAITING_FOR_GUEST);
+        roomRepository.save(room);
+        try {
+            var roomDto = roomMapper.roomToRoomDtoMapper(room);
+            messagingTemplate.convertAndSendToUser(
+                    room.getHost().getGameName(),
+                    "/queue/room-updates",
+                    roomDto
+            );
+        } catch (Exception e) {
+            log.warn("Failed to send room update to host after guest left: {}", e.getMessage());
+        }
+    }
+
+    @Override
+    public RoomDto getRoomById(UUID id) {
+        Room room = roomRepository.findOneById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Room doesn't exist"));
+        return roomMapper.roomToRoomDtoMapper(room);
     }
 
 }

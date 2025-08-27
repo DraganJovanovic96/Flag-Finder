@@ -16,4 +16,4 @@ public class CompletedGameDto {
     private Integer totalRounds;
     private LocalDateTime startedAt;
     private LocalDateTime endedAt;
-} 
+}

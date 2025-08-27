@@ -4,6 +4,7 @@ import com.flagfinder.dto.InviteFriendRequestDto;
 import com.flagfinder.dto.InviteSentDto;
 import com.flagfinder.dto.JoinRoomRequestDto;
 import com.flagfinder.dto.RoomDto;
+import java.util.UUID;
 
 public interface RoomService {
     
@@ -23,4 +24,9 @@ public interface RoomService {
     InviteSentDto inviteFriend(InviteFriendRequestDto inviteFriendRequestDto);
 
     void leaveRoom();
-} 
+
+    /**
+     * Retrieves room details by id
+     */
+    RoomDto getRoomById(UUID id);
+}

@@ -44,6 +44,11 @@ public class SecurityConfiguration {
     private final JwtAuthenticationFilter jwtAuthFilter;
 
     /**
+     * Beacon authentication filter for handling beacon requests with token parameters.
+     */
+    private final BeaconAuthenticationFilter beaconAuthFilter;
+
+    /**
      * Authentication provider for authenticating users.
      */
     private final AuthenticationProvider authenticationProvider;
@@ -84,7 +89,9 @@ public class SecurityConfiguration {
                                 "/configuration/security",
                                 "/swagger-ui/**",
                                 "/webjars/**",
-                                "/swagger-ui.html,"
+                                "/swagger-ui.html,",
+                                "/ws/**",
+                                "/ws-native/**"
                         )
                         .permitAll()
 
@@ -106,6 +113,7 @@ public class SecurityConfiguration {
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .authenticationProvider(authenticationProvider)
+                .addFilterBefore(beaconAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .logout(logout -> logout
                         .logoutUrl("/api/v1/auth/logout")
