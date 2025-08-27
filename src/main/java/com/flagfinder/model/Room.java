@@ -17,4 +17,4 @@ public class Room extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "room_status")
     private RoomStatus status;
-} 
+}

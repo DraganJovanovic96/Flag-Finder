@@ -34,7 +34,6 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                 .setHandshakeHandler(jwtPrincipalHandshakeHandler)
                 .withSockJS();
 
-        // Native WebSocket endpoint for browser STOMP clients without SockJS
         registry.addEndpoint("/ws-native")
                 .setAllowedOrigins(frontendUrl)
                 .setHandshakeHandler(jwtPrincipalHandshakeHandler);
@@ -45,5 +44,3 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         registration.interceptors(stompAuthChannelInterceptor);
     }
 }
-
-

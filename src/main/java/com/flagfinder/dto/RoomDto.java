@@ -12,4 +12,4 @@ public class RoomDto extends BaseEntityDto {
     private RoomStatus status;
     private LocalDateTime gameStartedAt;
     private LocalDateTime gameEndedAt;
-} 
+}

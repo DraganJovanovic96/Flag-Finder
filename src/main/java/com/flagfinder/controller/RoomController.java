@@ -86,4 +86,4 @@ public class RoomController {
     public ResponseEntity<RoomDto> getRoom(@PathVariable("id") java.util.UUID id) {
         return ResponseEntity.ok(roomService.getRoomById(id));
     }
-} 
+}

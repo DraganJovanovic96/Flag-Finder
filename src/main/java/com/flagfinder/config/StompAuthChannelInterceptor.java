@@ -32,7 +32,6 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
         StompHeaderAccessor accessor = StompHeaderAccessor.wrap(message);
 
         if (StompCommand.CONNECT.equals(accessor.getCommand())) {
-            log.info("STOMP CONNECT received");
             List<String> authHeaders = accessor.getNativeHeader("Authorization");
             String bearerToken = (authHeaders != null && !authHeaders.isEmpty()) ? authHeaders.get(0) : null;
 
@@ -45,11 +44,9 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
                     UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                             userDetails, null, userDetails.getAuthorities());
                     SecurityContextHolder.getContext().setAuthentication(authentication);
-                    // Set Principal name to gameName so user-destination matches gameName
                     var userOpt = userRepository.findByEmail(usernameEmail);
                     String principalName = userOpt.map(com.flagfinder.model.User::getGameName).orElse(usernameEmail);
                     accessor.setUser(() -> principalName);
-//                    log.info("STOMP authenticated as {} (principal={})", usernameEmail, principalName);
                 } else {
                     log.warn("STOMP token invalid for {}", usernameEmail);
                 }
@@ -66,5 +63,3 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
         return message;
     }
 }
-
-

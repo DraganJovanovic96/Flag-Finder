@@ -13,5 +13,4 @@ public interface CountryRepository extends JpaRepository<Country, UUID> {
     Optional<Country> findByNameOfCounty(String countryName);
 
     Optional<Country> findOneById(UUID countryId);
-
 }

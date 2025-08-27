@@ -31,8 +31,7 @@ public class BeaconAuthenticationFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain
     ) throws ServletException, IOException {
-        
-        // Only process beacon requests to /api/v1/rooms/cancel
+
         if (!request.getRequestURI().equals("/api/v1/rooms/cancel") || 
             !request.getMethod().equals("POST")) {
             filterChain.doFilter(request, response);
@@ -44,13 +43,11 @@ public class BeaconAuthenticationFilter extends OncePerRequestFilter {
         final String token;
         final String userEmail;
 
-        // Check for token in FormData (beacon request)
         String tokenParam = request.getParameter("token");
         if (tokenParam != null && !tokenParam.isEmpty()) {
             token = tokenParam;
             log.info("Processing beacon request with token parameter, token length: {}", token.length());
         } else {
-            // Check for token in Authorization header (regular request)
             final String authHeader = request.getHeader("Authorization");
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
                 log.warn("No token found in beacon request - no token parameter and no Authorization header");

@@ -32,5 +32,4 @@ public class Country extends  BaseEntity {
 
     @OneToMany(mappedBy = "country")
     private List<Round> rounds = new ArrayList<>();
-
 }

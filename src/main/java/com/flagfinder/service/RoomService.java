@@ -29,4 +29,4 @@ public interface RoomService {
      * Retrieves room details by id
      */
     RoomDto getRoomById(UUID id);
-} 
+}
