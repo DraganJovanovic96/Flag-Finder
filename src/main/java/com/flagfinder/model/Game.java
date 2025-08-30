@@ -15,6 +15,10 @@ import java.util.List;
 @EqualsAndHashCode(callSuper = false)
 public class Game extends BaseEntity{
 
+    @OneToOne
+    @JoinColumn(name = "room_id")
+    private Room room;
+
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "user_games",

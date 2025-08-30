@@ -38,15 +38,12 @@ public class BeaconAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        log.info("BeaconAuthenticationFilter processing request: {} {}", request.getMethod(), request.getRequestURI());
-
         final String token;
         final String userEmail;
 
         String tokenParam = request.getParameter("token");
         if (tokenParam != null && !tokenParam.isEmpty()) {
             token = tokenParam;
-            log.info("Processing beacon request with token parameter, token length: {}", token.length());
         } else {
             final String authHeader = request.getHeader("Authorization");
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
@@ -55,12 +52,10 @@ public class BeaconAuthenticationFilter extends OncePerRequestFilter {
                 return;
             }
             token = authHeader.substring(7);
-            log.info("Processing regular request with Authorization header, token length: {}", token.length());
         }
 
         try {
             userEmail = jwtService.extractUsername(token);
-            log.info("Extracted user email from token: {}", userEmail);
         } catch (Exception e) {
             log.warn("Failed to extract username from token: {}", e.getMessage(), e);
             filterChain.doFilter(request, response);
@@ -79,15 +74,8 @@ public class BeaconAuthenticationFilter extends OncePerRequestFilter {
                         new WebAuthenticationDetailsSource().buildDetails(request)
                 );
                 SecurityContextHolder.getContext().setAuthentication(authToken);
-                log.info("Successfully authenticated beacon request for user: {} (email: {})", 
-                        ((UserDetails) authToken.getPrincipal()).getUsername(), userEmail);
-            } else {
-                log.warn("Token validation failed for user: {}", userEmail);
             }
-        } else {
-            log.info("User already authenticated or no user email: {}", userEmail);
         }
-        
         filterChain.doFilter(request, response);
     }
 }

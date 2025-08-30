@@ -145,12 +145,6 @@ public class RoomServiceImpl implements RoomService {
 
          Room room = roomRepository.findOneByUser(user)
                  .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User is not in any room"));
- 
-        log.info("Found room {} with host: {}, guest: {}, status: {}", 
-                room.getId(), 
-                room.getHost().getGameName(), 
-                room.getGuest() != null ? room.getGuest().getGameName() : "null",
-                room.getStatus());
 
           if (room.getHost().equals(user)) {
             if (room.getGuest() != null) {

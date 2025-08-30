@@ -1,8 +1,6 @@
 package com.flagfinder.model;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -19,5 +17,8 @@ public class Guess extends BaseEntity{
     private User user;
 
     @ManyToOne
-    private Country country;
+    private Country guessedCountry;
+
+    @Column(name = "is_correct")
+    private boolean correct;
 }
