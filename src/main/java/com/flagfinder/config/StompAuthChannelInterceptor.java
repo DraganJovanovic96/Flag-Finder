@@ -47,17 +47,8 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
                     var userOpt = userRepository.findByEmail(usernameEmail);
                     String principalName = userOpt.map(com.flagfinder.model.User::getGameName).orElse(usernameEmail);
                     accessor.setUser(() -> principalName);
-                } else {
-                    log.warn("STOMP token invalid for {}", usernameEmail);
                 }
-            } else {
-                log.warn("STOMP CONNECT missing Authorization header");
             }
-        }
-
-        if (StompCommand.SUBSCRIBE.equals(accessor.getCommand())) {
-            String destination = accessor.getDestination();
-            String principal = accessor.getUser() != null ? accessor.getUser().getName() : "<none>";
         }
 
         return message;

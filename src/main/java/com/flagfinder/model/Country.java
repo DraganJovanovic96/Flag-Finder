@@ -17,17 +17,16 @@ public class Country extends  BaseEntity {
     @Column
     private String nameOfCounty;
 
+    @Column(name = "flag_image", columnDefinition = "BYTEA")
+    private byte[] flagImage;
+
     @ElementCollection(targetClass = Continent.class)
     @Enumerated(EnumType.STRING)
     @CollectionTable(name = "country_continents", joinColumns = @JoinColumn(name = "country_id"))
     @Column(name = "continent")
     private List<Continent> continents = new ArrayList<>();
 
-    @Lob
-    @Column(name = "image", columnDefinition = "BYTEA")
-    private byte[] flagImage;
-
-    @OneToMany(mappedBy = "country")
+    @OneToMany(mappedBy = "guessedCountry")
     private List<Guess> guesses = new ArrayList<>();
 
     @OneToMany(mappedBy = "country")

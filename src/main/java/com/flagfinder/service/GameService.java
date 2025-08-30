@@ -1,15 +1,13 @@
 package com.flagfinder.service;
 
-import com.flagfinder.dto.SendUserNameDto;
+import com.flagfinder.dto.GameDto;
+import com.flagfinder.dto.GuessRequestDto;
 import com.flagfinder.model.Game;
 
 import java.util.List;
 import java.util.UUID;
 
 public interface GameService {
-
-    Game inviteToPlay(SendUserNameDto sendUserNameDto);
-    
     /**
      * Gets a game by ID
      */
@@ -24,4 +22,24 @@ public interface GameService {
      * Gets all completed games
      */
     List<Game> getAllCompletedGames();
+    
+    /**
+     * Starts a new game from a room with 2 players
+     */
+    GameDto startGame(UUID roomId);
+    
+    /**
+     * Submits a guess for the current round
+     */
+    GameDto submitGuess(GuessRequestDto guessRequest);
+    
+    /**
+     * Gets current game state
+     */
+    GameDto getGameState(UUID gameId);
+    
+    /**
+     * Ends the current game and calculates winner
+     */
+    GameDto endGame(UUID gameId);
 }

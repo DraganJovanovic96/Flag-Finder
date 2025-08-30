@@ -5,7 +5,6 @@ import com.flagfinder.service.impl.JwtService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.server.ServerHttpRequest;
-import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.WebSocketHandler;
@@ -27,7 +26,6 @@ public class JwtPrincipalHandshakeHandler extends DefaultHandshakeHandler {
     protected Principal determineUser(@NonNull ServerHttpRequest request,
                                       @NonNull WebSocketHandler wsHandler,
                                       @NonNull Map<String, Object> attributes) {
-        // Try Authorization header first
         List<String> authHeaders = request.getHeaders().get("Authorization");
         String token = null;
         if (authHeaders != null && !authHeaders.isEmpty()) {
@@ -37,7 +35,6 @@ public class JwtPrincipalHandshakeHandler extends DefaultHandshakeHandler {
             }
         }
 
-        // Fallback to URL query param ?token=...
         if (token == null && request.getURI().getQuery() != null) {
             String[] params = request.getURI().getQuery().split("&");
             for (String p : params) {
@@ -59,7 +56,6 @@ public class JwtPrincipalHandshakeHandler extends DefaultHandshakeHandler {
                 String gameName = userRepository.findByEmail(email)
                         .map(u -> u.getGameName())
                         .orElse(email);
-                log.info("Handshake principal resolved: {} -> {}", email, gameName);
                 return () -> gameName;
             } catch (Exception e) {
                 log.warn("Failed to resolve principal from JWT in handshake: {}", e.getMessage());

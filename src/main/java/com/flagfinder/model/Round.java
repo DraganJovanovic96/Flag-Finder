@@ -21,4 +21,7 @@ public class Round extends BaseEntity {
 
     @ManyToOne
     private Country country;
+
+    @Column
+    private Integer roundNumber;
 }
