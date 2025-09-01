@@ -35,7 +35,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@EqualsAndHashCode(exclude = {"hostedRoom", "guestRoom", "tokens", "initiators", "targets"})
+@EqualsAndHashCode(exclude = {"hostedRooms", "guestRooms", "tokens", "initiators", "targets"})
 @Entity
 @Table(name = "users")
 @SQLDelete(sql = "UPDATE users SET deleted = true WHERE id=?")
@@ -146,11 +146,11 @@ public class User extends BaseEntity implements UserDetails {
     @OneToMany(mappedBy = "target")
     private List<Friendship> targets;
 
-    @OneToOne(mappedBy = "host")
-    private Room hostedRoom;
+    @OneToMany(mappedBy = "host")
+    private List<Room> hostedRooms;
 
-    @OneToOne(mappedBy = "guest")
-    private Room guestRoom;
+    @OneToMany(mappedBy = "guest")
+    private List<Room> guestRooms;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
