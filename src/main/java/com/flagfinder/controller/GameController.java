@@ -3,6 +3,7 @@ package com.flagfinder.controller;
 import com.flagfinder.dto.GameDto;
 import com.flagfinder.dto.GameStartRequestDto;
 import com.flagfinder.dto.GuessRequestDto;
+import com.flagfinder.dto.GuessResponseDto;
 import com.flagfinder.model.Game;
 import com.flagfinder.service.GameService;
 import lombok.RequiredArgsConstructor;
@@ -55,9 +56,9 @@ public class GameController {
      * @throws ResponseStatusException if the game is not found, not in progress, or user already guessed in this round
      */
     @PostMapping("/guess")
-    public ResponseEntity<GameDto> submitGuess(@RequestBody GuessRequestDto guessRequest) {
-        GameDto game = gameService.submitGuess(guessRequest);
-        return ResponseEntity.ok(game);
+    public ResponseEntity<GuessResponseDto> submitGuess(@RequestBody GuessRequestDto guessRequest) {
+        GuessResponseDto response = gameService.submitGuess(guessRequest);
+        return ResponseEntity.ok(response);
     }
     
     /**

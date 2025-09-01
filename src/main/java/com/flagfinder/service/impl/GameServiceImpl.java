@@ -1,8 +1,9 @@
 package com.flagfinder.service.impl;
 
 import com.flagfinder.dto.GameDto;
+import com.flagfinder.dto.GameStartRequestDto;
 import com.flagfinder.dto.GuessRequestDto;
-import com.flagfinder.dto.RoundDto;
+import com.flagfinder.dto.GuessResponseDto;
 import com.flagfinder.enumeration.GameStatus;
 import com.flagfinder.mapper.GameMapper;
 import com.flagfinder.mapper.RoundMapper;
@@ -13,6 +14,7 @@ import com.flagfinder.service.GameTimerService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.hibernate.Hibernate;
 import org.springframework.http.HttpStatus;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -78,7 +80,7 @@ public class GameServiceImpl implements GameService {
         
         Game existingGame = gameRepository.findByRoomAndStatus(room, GameStatus.IN_PROGRESS);
         if (existingGame != null) {
-            return convertToGameDto(existingGame);
+            return gameMapper.gameToGameDto(existingGame);
         }
         
         if (room.getStatus() != com.flagfinder.enumeration.RoomStatus.ROOM_READY_FOR_START) {
@@ -102,7 +104,8 @@ public class GameServiceImpl implements GameService {
         
         startNewRound(savedGame, 1);
 
-        GameDto gameDto = convertToGameDto(savedGame);
+        GameDto gameDto = gameMapper.gameToGameDto(savedGame);
+        populateCurrentRoundData(gameDto, savedGame);
         
         try {
             messagingTemplate.convertAndSendToUser(
@@ -128,8 +131,9 @@ public class GameServiceImpl implements GameService {
     }
     
     @Override
-    public GameDto submitGuess(GuessRequestDto guessRequest) {
-        Game game = gameRepository.findById(guessRequest.getGameId())
+    @Transactional
+    public GuessResponseDto submitGuess(GuessRequestDto guessRequest) {
+        Game game = gameRepository.findByIdWithRelations(guessRequest.getGameId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
         
         if (game.getStatus() != GameStatus.IN_PROGRESS) {
@@ -167,28 +171,74 @@ public class GameServiceImpl implements GameService {
             updateScore(game, currentUser);
         }
 
+        log.info("Round {} has {} guesses", currentRound.getRoundNumber(), currentRound.getGuesses().size());
+        
         if (currentRound.getGuesses().size() >= 2 || shouldEndRound(currentRound)) {
+            log.info("Ending round {} - both players guessed or timeout", currentRound.getRoundNumber());
+            // Explicitly initialize collections before calling endCurrentRound
+            Hibernate.initialize(game.getUsers());
+            Hibernate.initialize(game.getRounds());
+            if (game.getRoom() != null) {
+                Hibernate.initialize(game.getRoom());
+            }
             endCurrentRound(game, currentRound.getRoundNumber());
+        } else {
+            log.info("Round {} continues - only {} guesses so far", currentRound.getRoundNumber(), currentRound.getGuesses().size());
         }
         
-        return convertToGameDto(gameRepository.save(game));
+        GameDto gameDto = gameMapper.gameToGameDto(gameRepository.save(game));
+        populateCurrentRoundData(gameDto, game);
+        
+        // Create guess response with feedback
+        GuessResponseDto response = new GuessResponseDto();
+        response.setGame(gameDto);
+        response.setCorrect(guess.isCorrect());
+        response.setPointsAwarded(guess.isCorrect() ? 1 : 0);
+        response.setCorrectCountryName(currentRound.getCountry().getNameOfCounty());
+        
+        if (guess.isCorrect()) {
+            response.setMessage("Correct! Well done!");
+        } else {
+            response.setMessage("Incorrect. The correct answer was " + currentRound.getCountry().getNameOfCounty());
+        }
+        
+        return response;
     }
     
     @Override
+    @Transactional
     public GameDto getGameState(UUID gameId) {
-        Game game = gameRepository.findById(gameId)
+        Game game = gameRepository.findByIdWithRelations(gameId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
         
-        return convertToGameDto(game);
+        // Explicitly initialize collections
+        Hibernate.initialize(game.getUsers());
+        Hibernate.initialize(game.getRounds());
+        if (game.getRoom() != null) {
+            Hibernate.initialize(game.getRoom());
+        }
+        
+        GameDto gameDto = gameMapper.gameToGameDto(game);
+        populateCurrentRoundData(gameDto, game);
+        return gameDto;
     }
     
     @Override
+    @Transactional
     public GameDto endGame(UUID gameId) {
-        Game game = gameRepository.findById(gameId)
+        Game game = gameRepository.findByIdWithRelations(gameId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
+        
+        // Explicitly initialize collections
+        Hibernate.initialize(game.getUsers());
+        Hibernate.initialize(game.getRounds());
+        if (game.getRoom() != null) {
+            Hibernate.initialize(game.getRoom());
+        }
         
         game.setStatus(GameStatus.COMPLETED);
         game.setEndedAt(LocalDateTime.now());
+        log.info("Game {} set to COMPLETED status", gameId);
 
         if (game.getHostScore() > game.getGuestScore()) {
             game.setWinnerUserName(game.getUsers().get(0).getGameName());
@@ -203,10 +253,35 @@ public class GameServiceImpl implements GameService {
         }
         gameTimerService.cancelGameTimers(gameId);
         
-        return convertToGameDto(gameRepository.save(game));
+        GameDto gameDto = gameMapper.gameToGameDto(gameRepository.save(game));
+        populateCurrentRoundData(gameDto, game);
+        
+        // Send WebSocket notification for game completion
+        try {
+            messagingTemplate.convertAndSendToUser(
+                    room.getHost().getGameName(),
+                    "/queue/game-ended",
+                    gameDto
+            );
+        } catch (Exception e) {
+            log.error("Failed to send game-ended notification to host {}: {}", room.getHost().getGameName(), e.getMessage(), e);
+        }
+        
+        try {
+            messagingTemplate.convertAndSendToUser(
+                    room.getGuest().getGameName(),
+                    "/queue/game-ended",
+                    gameDto
+            );
+        } catch (Exception e) {
+            log.error("Failed to send game-ended notification to guest {}: {}", room.getGuest().getGameName(), e.getMessage(), e);
+        }
+        
+        return gameDto;
     }
     
     private void startNewRound(Game game, int roundNumber) {
+        log.info("Starting new round {} for game {}", roundNumber, game.getId());
         List<Country> countries = countryRepository.findAll();
         if (countries.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "No countries available");
@@ -219,24 +294,78 @@ public class GameServiceImpl implements GameService {
         round.setCountry(randomCountry);
         round.setRoundNumber(roundNumber);
         
+        // Cancel any existing timers for this game before starting new one
+        log.info("Cancelling existing timers for game {}", game.getId());
+        gameTimerService.cancelGameTimers(game.getId());
         roundRepository.save(round);
-
+        log.info("Starting timer for game {} round {} with duration {} seconds", game.getId(), roundNumber, ROUND_DURATION_SECONDS);
         gameTimerService.startRoundTimer(game.getId(), roundNumber, ROUND_DURATION_SECONDS);
+        
+        // Refresh game entity to include the new round with all relations
+        Game refreshedGame = gameRepository.findByIdWithRelations(game.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
+        
+        // Initialize collections for WebSocket notification
+        Hibernate.initialize(refreshedGame.getUsers());
+        Hibernate.initialize(refreshedGame.getRounds());
+        if (refreshedGame.getRoom() != null) {
+            Hibernate.initialize(refreshedGame.getRoom());
+        }
+        
+        GameDto gameDto = gameMapper.gameToGameDto(refreshedGame);
+        populateCurrentRoundData(gameDto, refreshedGame);
+        Room room = refreshedGame.getRoom();
+        
+        // Send WebSocket notifications for round start
+        log.info("Sending WebSocket notifications for round {} start to host {} and guest {}", 
+                roundNumber, room.getHost().getGameName(), room.getGuest().getGameName());
+        try {
+            messagingTemplate.convertAndSendToUser(
+                    room.getHost().getGameName(),
+                    "/queue/round-started",
+                    gameDto
+            );
+            log.info("Successfully sent round-started notification to host {} for round {}", room.getHost().getGameName(), roundNumber);
+        } catch (Exception e) {
+            log.error("Failed to send round-started notification to host {}: {}", room.getHost().getGameName(), e.getMessage(), e);
+        }
+        
+        try {
+            messagingTemplate.convertAndSendToUser(
+                    room.getGuest().getGameName(),
+                    "/queue/round-started",
+                    gameDto
+            );
+            log.info("Successfully sent round-started notification to guest {} for round {}", room.getGuest().getGameName(), roundNumber);
+        } catch (Exception e) {
+            log.error("Failed to send round-started notification to guest {}: {}", room.getGuest().getGameName(), e.getMessage(), e);
+        }
     }
     
     private void endCurrentRound(Game game, int roundNumber) {
+        log.info("Ending round {} for game {}, total rounds: {}", roundNumber, game.getId(), TOTAL_ROUNDS);
         
         if (roundNumber < TOTAL_ROUNDS) {
+            log.info("Starting new round {} for game {}", roundNumber + 1, game.getId());
             startNewRound(game, roundNumber + 1);
         } else {
+            log.info("Final round completed, ending game {}", game.getId());
             endGame(game.getId());
         }
     }
     
+    @Transactional
     public void handleRoundTimeout(UUID gameId, Integer roundNumber) {
         try {
-            Game game = gameRepository.findById(gameId).orElse(null);
+            log.info("Handling timeout for game {} round {}", gameId, roundNumber);
+            Game game = gameRepository.findByIdWithRelations(gameId).orElse(null);
             if (game != null && game.getStatus() == GameStatus.IN_PROGRESS) {
+                // Explicitly initialize lazy collections to prevent LazyInitializationException
+                Hibernate.initialize(game.getUsers());
+                Hibernate.initialize(game.getRounds());
+                if (game.getRoom() != null) {
+                    Hibernate.initialize(game.getRoom());
+                }
                 endCurrentRound(game, roundNumber);
             }
         } catch (Exception e) {
@@ -253,26 +382,24 @@ public class GameServiceImpl implements GameService {
     }
     
     private boolean shouldEndRound(Round round) {
-
         return round.getGuesses().size() >= 2;
     }
     
-    private GameDto convertToGameDto(Game game) {
-        GameDto dto = gameMapper.gameToGameDto(game);
-
-        dto.setRoomId(game.getRoom().getId());
-        
+    private void populateCurrentRoundData(GameDto dto, Game game) {
         if (!game.getRounds().isEmpty()) {
-            Round currentRound = game.getRounds().get(game.getRounds().size() - 1);
+            // Find the round with the highest round number (most recent round)
+            Round currentRound = game.getRounds().stream()
+                    .max((r1, r2) -> Integer.compare(r1.getRoundNumber(), r2.getRoundNumber()))
+                    .orElse(game.getRounds().get(0));
+            
             dto.setCurrentRound(currentRound.getRoundNumber());
             
-            RoundDto roundDto = roundMapper.roundToRoundDto(currentRound);
+            com.flagfinder.dto.RoundDto roundDto = roundMapper.roundToRoundDto(currentRound);
             roundDto.setRoundActive(gameTimerService.isRoundActive(game.getId(), currentRound.getRoundNumber()));
             roundDto.setTimeRemaining(gameTimerService.getRemainingTime(game.getId(), currentRound.getRoundNumber()));
             
             dto.setCurrentRoundData(roundDto);
         }
-        
-        return dto;
     }
+    
 }
