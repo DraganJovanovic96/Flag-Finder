@@ -2,6 +2,7 @@ package com.flagfinder.service;
 
 import com.flagfinder.dto.GameDto;
 import com.flagfinder.dto.GuessRequestDto;
+import com.flagfinder.dto.GuessResponseDto;
 import com.flagfinder.model.Game;
 
 import java.util.List;
@@ -31,7 +32,7 @@ public interface GameService {
     /**
      * Submits a guess for the current round
      */
-    GameDto submitGuess(GuessRequestDto guessRequest);
+    GuessResponseDto submitGuess(GuessRequestDto guessRequest);
     
     /**
      * Gets current game state
