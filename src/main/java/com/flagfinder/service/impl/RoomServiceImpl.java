@@ -15,6 +15,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
@@ -37,15 +38,14 @@ public class RoomServiceImpl implements RoomService {
         User host = userRepository.findByEmail(extractAuthenticatedUserService.getAuthenticatedUser())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, USER_NOT_PRESENT));
 
-        Optional<Room> roomAsHost = roomRepository.findOneByHost(host);
-        Optional<Room> roomAsGuest = roomRepository.findOneByGuest(host);
+        // Clean up existing rooms that aren't in active/completed games using optimized queries
+        List<Room> existingHostRooms = roomRepository.findByHostAndStatusNotInActiveOrCompleted(host);
+        roomRepository.deleteAll(existingHostRooms);
 
-        roomAsHost.ifPresent(roomRepository::delete);
-
-        if (roomAsGuest.isPresent()) {
-            Room guestRoom = roomAsGuest.get();
-            guestRoom.setGuest(null);
-            roomRepository.save(guestRoom);
+        List<Room> existingGuestRooms = roomRepository.findByGuestAndStatusNotInActiveOrCompleted(host);
+        for (Room existingRoom : existingGuestRooms) {
+            existingRoom.setGuest(null);
+            roomRepository.save(existingRoom);
         }
 
         Room room = new Room();
@@ -91,20 +91,18 @@ public class RoomServiceImpl implements RoomService {
     
     @Override
     public InviteSentDto inviteFriend(InviteFriendRequestDto inviteFriendRequestDto) {
-        System.out.println("this has been hit");
-
         User user = userRepository.findByEmail(extractAuthenticatedUserService.getAuthenticatedUser())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, USER_NOT_PRESENT));
 
-        Room room = roomRepository.findOneByHost(user)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Room doesn't exist."));
+        // Find the most recent room that's waiting for a guest
+        List<Room> hostRooms = roomRepository.findByHost(user);
+        Room room = hostRooms.stream()
+                .filter(r -> r.getStatus() == RoomStatus.WAITING_FOR_GUEST)
+                .findFirst()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No available room to invite friend to."));
 
         if (!userRepository.existsByGameNameIgnoreCase(inviteFriendRequestDto.getFriendUserName())) {
             throw new IllegalArgumentException("Friend doesn't exist " + inviteFriendRequestDto.getFriendUserName());
-        }
-
-        if (room.getStatus() != RoomStatus.WAITING_FOR_GUEST) {
-            throw new IllegalStateException("Can't invite friend to this room currently");
         }
 
         if (Objects.nonNull(room.getGuest())) {
@@ -143,8 +141,25 @@ public class RoomServiceImpl implements RoomService {
          User user = userRepository.findByEmail(extractAuthenticatedUserService.getAuthenticatedUser())
                  .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,"User is not found"));
 
-         Room room = roomRepository.findOneByUser(user)
-                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User is not in any room"));
+         // Find any room where user is host or guest (prioritize active rooms)
+         List<Room> hostRooms = roomRepository.findByHost(user);
+         List<Room> guestRooms = roomRepository.findByGuest(user);
+         
+         Room room = null;
+         
+         // First try to find an active room as host
+         room = hostRooms.stream()
+                 .filter(r -> r.getStatus() == RoomStatus.WAITING_FOR_GUEST || r.getStatus() == RoomStatus.ROOM_READY_FOR_START)
+                 .findFirst()
+                 .orElse(null);
+         
+         // If no active host room, try guest rooms
+         if (room == null) {
+             room = guestRooms.stream()
+                     .filter(r -> r.getStatus() == RoomStatus.WAITING_FOR_GUEST || r.getStatus() == RoomStatus.ROOM_READY_FOR_START)
+                     .findFirst()
+                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User is not in any active room"));
+         }
 
           if (room.getHost().equals(user)) {
             if (room.getGuest() != null) {

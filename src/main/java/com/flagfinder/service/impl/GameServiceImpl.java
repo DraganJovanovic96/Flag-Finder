@@ -5,6 +5,7 @@ import com.flagfinder.dto.GameStartRequestDto;
 import com.flagfinder.dto.GuessRequestDto;
 import com.flagfinder.dto.GuessResponseDto;
 import com.flagfinder.enumeration.GameStatus;
+import com.flagfinder.enumeration.RoomStatus;
 import com.flagfinder.mapper.GameMapper;
 import com.flagfinder.mapper.RoundMapper;
 import com.flagfinder.model.*;
@@ -44,8 +45,8 @@ public class GameServiceImpl implements GameService {
     private final RoundMapper roundMapper;
     private final SimpMessagingTemplate messagingTemplate;
     
-    private static final int TOTAL_ROUNDS = 10;
-    private static final int ROUND_DURATION_SECONDS = 10;
+    private static final int TOTAL_ROUNDS = 2;
+    private static final int ROUND_DURATION_SECONDS = 7;
     
     @Override
     public Game getGame(UUID gameId) {
@@ -248,7 +249,7 @@ public class GameServiceImpl implements GameService {
 
         Room room = game.getRoom();
         if (room != null) {
-            room.setStatus(com.flagfinder.enumeration.RoomStatus.ROOM_READY_FOR_START);
+            room.setStatus(RoomStatus.GAME_COMPLETED);
             roomRepository.save(room);
         }
         gameTimerService.cancelGameTimers(gameId);

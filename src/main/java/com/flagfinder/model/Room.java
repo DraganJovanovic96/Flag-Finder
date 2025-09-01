@@ -15,9 +15,12 @@ import java.util.List;
 @RequiredArgsConstructor
 @EqualsAndHashCode(exclude = {"host", "guest", "game"})
 public class Room extends BaseEntity {
-    @OneToOne
+    @ManyToOne
+    @JoinColumn(name = "host_id")
     private User host;
-    @OneToOne
+    
+    @ManyToOne
+    @JoinColumn(name = "guest_id")
     private User guest;
     @Enumerated(EnumType.STRING)
     @Column(name = "room_status")
