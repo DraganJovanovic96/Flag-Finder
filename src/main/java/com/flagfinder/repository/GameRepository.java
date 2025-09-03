@@ -3,11 +3,13 @@ package com.flagfinder.repository;
 import com.flagfinder.enumeration.GameStatus;
 import com.flagfinder.model.Game;
 import com.flagfinder.model.Room;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -20,4 +22,14 @@ public interface GameRepository extends JpaRepository <Game, UUID> {
            "LEFT JOIN FETCH g.users " +
            "WHERE g.id = :gameId")
     Optional<Game> findByIdWithRelations(@Param("gameId") UUID gameId);
+
+    long countByWinnerUserNameIgnoreCase(String userName);
+
+    @Query("""
+    SELECT g FROM Game g
+    JOIN g.users u
+    WHERE LOWER(u.gameName) = LOWER(:userName)
+    ORDER BY g.createdAt DESC
+    """)
+    List<Game> findRecentGamesByUser(@Param("userName") String userName, Pageable pageable);
 }

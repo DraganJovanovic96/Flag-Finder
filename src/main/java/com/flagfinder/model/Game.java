@@ -1,5 +1,6 @@
 package com.flagfinder.model;
 
+import com.flagfinder.enumeration.Continent;
 import com.flagfinder.enumeration.GameStatus;
 import jakarta.persistence.*;
 import lombok.Data;
@@ -51,4 +52,10 @@ public class Game extends BaseEntity{
     @Enumerated(EnumType.STRING)
     @Column(name = "game_status")
     private GameStatus status;
+    
+    @ElementCollection(targetClass = Continent.class)
+    @Enumerated(EnumType.STRING)
+    @CollectionTable(name = "game_continents", joinColumns = @JoinColumn(name = "game_id"))
+    @Column(name = "continent")
+    private List<Continent> continents = new ArrayList<>();
 }

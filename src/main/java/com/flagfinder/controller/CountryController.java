@@ -1,6 +1,8 @@
 package com.flagfinder.controller;
 
 import com.flagfinder.dto.CountryCreateDto;
+import com.flagfinder.dto.CountrySearchDto;
+import com.flagfinder.enumeration.Continent;
 import com.flagfinder.model.Country;
 import com.flagfinder.service.CountryService;
 import lombok.RequiredArgsConstructor;
@@ -35,12 +37,9 @@ public class CountryController {
      */
     @PostMapping(consumes = "application/json", produces = "application/json")
     public ResponseEntity<Country> createCountry(@RequestBody CountryCreateDto countryCreateDto) {
-        try {
-            Country createdCountry = countryService.createCountryFromImageUrl(countryCreateDto);
-            return ResponseEntity.status(HttpStatus.CREATED).body(createdCountry);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
-        }
+        Country createdCountry = countryService.createCountryFromImageUrl(countryCreateDto);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(createdCountry);
     }
 
     /**
@@ -49,8 +48,16 @@ public class CountryController {
      * @return ResponseEntity with list of countries
      */
     @GetMapping
-    public ResponseEntity<List<Country>> getAllCountries() {
-        List<Country> countries = countryService.getAllCountries();
+    public ResponseEntity<List<Country>> getAllCountries(
+            @RequestParam(required = false) List<Continent> continents) {
+        List<Country> countries;
+        
+        if (continents != null && !continents.isEmpty()) {
+            countries = countryService.getCountriesByAnyContinents(continents);
+        } else {
+            countries = countryService.getAllCountries();
+        }
+
         return ResponseEntity.ok(countries);
     }
 
@@ -63,10 +70,8 @@ public class CountryController {
     @GetMapping("/{id}")
     public ResponseEntity<Country> getCountryById(@PathVariable UUID id) {
         Country country = countryService.getCountryById(id);
-        if (country != null) {
-            return ResponseEntity.ok(country);
-        }
-        return ResponseEntity.notFound().build();
+
+        return ResponseEntity.ok(country);
     }
 
     /**
@@ -78,43 +83,32 @@ public class CountryController {
     @GetMapping("/{id}/flag")
     @CrossOrigin(origins = "*")
     public ResponseEntity<byte[]> getCountryFlag(@PathVariable UUID id) {
-        try {
-            Country country = countryService.getCountryById(id);
-            if (country == null) {
-                System.out.println("Country not found for ID: " + id);
-                return ResponseEntity.notFound().build();
-            }
-            
-            if (country.getFlagImage() == null) {
-                System.out.println("Country found but no flag image for: " + country.getNameOfCounty());
-                return ResponseEntity.notFound().build();
-            }
-            
-            System.out.println("Serving flag image for: " + country.getNameOfCounty() + ", size: " + country.getFlagImage().length + " bytes");
+        return countryService.getCountryFlagResponse(id);
+    }
 
-            String contentType = "image/png";
-            byte[] imageData = country.getFlagImage();
-            if (imageData.length > 4) {
-                String header = new String(imageData, 0, Math.min(100, imageData.length));
-                if (header.contains("<svg") || header.contains("<?xml")) {
-                    contentType = "image/svg+xml";
-                }
-                else if (imageData[0] == (byte)0xFF && imageData[1] == (byte)0xD8) {
-                    contentType = "image/jpeg";
-                }
-            }
-            
-            return ResponseEntity.ok()
-                    .header("Content-Type", contentType)
-                    .header("Cache-Control", "max-age=3600")
-                    .header("Access-Control-Allow-Origin", "*")
-                    .header("Access-Control-Allow-Methods", "GET")
-                    .header("Access-Control-Allow-Headers", "*")
-                    .body(country.getFlagImage());
-        } catch (Exception e) {
+    /**
+     * Searches countries by name prefix
+     * 
+     * @param prefix the prefix to search for
+     * @return ResponseEntity with list of matching countries (max 5)
+     */
+    @GetMapping("/search")
+    public ResponseEntity<List<CountrySearchDto>> searchCountries(@RequestParam String prefix) {
+        List<CountrySearchDto> countries = countryService.searchCountriesByPrefix(prefix, 5);
 
-            return ResponseEntity.internalServerError().build();
-        }
+        return ResponseEntity.ok(countries);
+    }
+
+    /**
+     * Loads countries from REST Countries API
+     * 
+     * @return ResponseEntity with success message
+     */
+    @PostMapping("/load-from-api")
+    public ResponseEntity<String> loadCountriesFromApi() {
+        String result = countryService.loadCountriesFromRestApi();
+
+        return ResponseEntity.ok(result);
     }
 
     /**
@@ -126,6 +120,21 @@ public class CountryController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteCountry(@PathVariable UUID id) {
         countryService.deleteCountry(id);
+        
         return ResponseEntity.noContent().build();
+    }
+    
+    /**
+     * Gets a random country from specified continents
+     * 
+     * @param continents list of continents to choose from (optional)
+     * @return ResponseEntity with random country
+     */
+    @GetMapping("/random")
+    public ResponseEntity<Country> getRandomCountry(
+            @RequestParam(required = false) List<Continent> continents) {
+        Country randomCountry = countryService.getRandomCountryFromAnyContinents(continents);
+        
+        return ResponseEntity.ok(randomCountry);
     }
 }
