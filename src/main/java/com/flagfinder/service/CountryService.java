@@ -29,6 +29,24 @@ public interface CountryService {
     List<Country> getAllCountries();
     
     /**
+     * Gets countries filtered by continents (OR logic)
+     * 
+     * @param continents list of continents to filter by
+     * @return list of countries from any of the specified continents
+     * @throws RuntimeException if filtering fails
+     */
+    List<Country> getCountriesByAnyContinents(List<com.flagfinder.enumeration.Continent> continents);
+    
+    /**
+     * Gets a random country from specified continents (OR logic)
+     * 
+     * @param continents list of continents to choose from
+     * @return random country from any of the specified continents
+     * @throws RuntimeException if no country found or filtering fails
+     */
+    Country getRandomCountryFromAnyContinents(List<com.flagfinder.enumeration.Continent> continents);
+    
+    /**
      * Gets a country by ID
      * 
      * @param id the country ID

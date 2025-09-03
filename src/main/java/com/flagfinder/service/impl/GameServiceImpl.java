@@ -13,6 +13,7 @@ import com.flagfinder.mapper.GameMapper;
 import com.flagfinder.mapper.RoundMapper;
 import com.flagfinder.model.*;
 import com.flagfinder.repository.*;
+import com.flagfinder.service.CountryService;
 import com.flagfinder.service.GameService;
 import com.flagfinder.service.GameTimerService;
 import jakarta.transaction.Transactional;
@@ -40,6 +41,7 @@ public class GameServiceImpl implements GameService {
     private final UserRepository userRepository;
     private final RoomRepository roomRepository;
     private final CountryRepository countryRepository;
+    private final CountryService countryService;
     private final RoundRepository roundRepository;
     private final GuessRepository guessRepository;
     
@@ -75,7 +77,7 @@ public class GameServiceImpl implements GameService {
     
     @Override
     @Transactional
-    public synchronized GameDto startGame(UUID roomId) {
+    public synchronized GameDto startGame(UUID roomId, List<com.flagfinder.enumeration.Continent> continents) {
         Room room = roomRepository.findById(roomId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Room not found"));
         
@@ -101,13 +103,14 @@ public class GameServiceImpl implements GameService {
         game.setTotalRounds(TOTAL_ROUNDS);
         game.setStatus(GameStatus.IN_PROGRESS);
         game.setStartedAt(LocalDateTime.now());
+        game.setContinents(continents != null ? continents : new ArrayList<>());
         
         Game savedGame = gameRepository.save(game);
         
         room.setStatus(com.flagfinder.enumeration.RoomStatus.GAME_IN_PROGRESS);
         roomRepository.save(room);
         
-        startNewRound(savedGame, 1);
+        startNewRound(savedGame, 1, continents);
 
         GameDto gameDto = gameMapper.gameToGameDto(savedGame);
         populateCurrentRoundData(gameDto, savedGame);
@@ -285,14 +288,15 @@ public class GameServiceImpl implements GameService {
         return gameDto;
     }
     
-    private void startNewRound(Game game, int roundNumber) {
-        log.info("Starting new round {} for game {}", roundNumber, game.getId());
-        List<Country> countries = countryRepository.findAll();
-        if (countries.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "No countries available");
-        }
+    private void startNewRound(Game game, int roundNumber, List<com.flagfinder.enumeration.Continent> continents) {
+        log.info("Starting new round {} for game {} with continents: {}", roundNumber, game.getId(), continents);
         
-        Country randomCountry = countries.get(new Random().nextInt(countries.size()));
+        Country randomCountry;
+        if (continents != null && !continents.isEmpty()) {
+            randomCountry = countryService.getRandomCountryFromAnyContinents(continents);
+        } else {
+            randomCountry = countryService.getRandomCountryFromAnyContinents(null);
+        }
 
         Round round = new Round();
         round.setGame(game);
@@ -352,13 +356,12 @@ public class GameServiceImpl implements GameService {
         
         if (roundNumber < TOTAL_ROUNDS) {
             log.info("Starting new round {} for game {}", roundNumber + 1, game.getId());
-            startNewRound(game, roundNumber + 1);
+            startNewRound(game, roundNumber + 1, game.getContinents());
         } else {
             log.info("Final round completed, ending game {}", game.getId());
             endGame(game.getId());
         }
     }
-    
     @Transactional
     public void handleRoundTimeout(UUID gameId, Integer roundNumber) {
         try {

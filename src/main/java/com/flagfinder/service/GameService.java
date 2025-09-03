@@ -30,7 +30,7 @@ public interface GameService {
     /**
      * Starts a new game from a room with 2 players
      */
-    GameDto startGame(UUID roomId);
+    GameDto startGame(UUID roomId, java.util.List<com.flagfinder.enumeration.Continent> continents);
     
     /**
      * Submits a guess for the current round

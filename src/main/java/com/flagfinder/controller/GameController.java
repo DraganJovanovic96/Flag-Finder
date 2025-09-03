@@ -43,7 +43,7 @@ public class GameController {
      */
     @PostMapping("/start")
     public ResponseEntity<GameDto> startGame(@RequestBody GameStartRequestDto request) {
-        GameDto game = gameService.startGame(request.getRoomId());
+        GameDto game = gameService.startGame(request.getRoomId(), request.getContinents());
 
         return ResponseEntity.status(HttpStatus.CREATED).body(game);
     }

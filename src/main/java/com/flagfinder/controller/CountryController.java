@@ -2,6 +2,7 @@ package com.flagfinder.controller;
 
 import com.flagfinder.dto.CountryCreateDto;
 import com.flagfinder.dto.CountrySearchDto;
+import com.flagfinder.enumeration.Continent;
 import com.flagfinder.model.Country;
 import com.flagfinder.service.CountryService;
 import lombok.RequiredArgsConstructor;
@@ -47,8 +48,15 @@ public class CountryController {
      * @return ResponseEntity with list of countries
      */
     @GetMapping
-    public ResponseEntity<List<Country>> getAllCountries() {
-        List<Country> countries = countryService.getAllCountries();
+    public ResponseEntity<List<Country>> getAllCountries(
+            @RequestParam(required = false) List<Continent> continents) {
+        List<Country> countries;
+        
+        if (continents != null && !continents.isEmpty()) {
+            countries = countryService.getCountriesByAnyContinents(continents);
+        } else {
+            countries = countryService.getAllCountries();
+        }
 
         return ResponseEntity.ok(countries);
     }
@@ -114,5 +122,19 @@ public class CountryController {
         countryService.deleteCountry(id);
         
         return ResponseEntity.noContent().build();
+    }
+    
+    /**
+     * Gets a random country from specified continents
+     * 
+     * @param continents list of continents to choose from (optional)
+     * @return ResponseEntity with random country
+     */
+    @GetMapping("/random")
+    public ResponseEntity<Country> getRandomCountry(
+            @RequestParam(required = false) List<Continent> continents) {
+        Country randomCountry = countryService.getRandomCountryFromAnyContinents(continents);
+        
+        return ResponseEntity.ok(randomCountry);
     }
 }

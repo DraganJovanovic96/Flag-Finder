@@ -270,4 +270,49 @@ public class CountryServiceImpl implements CountryService {
             throw new RuntimeException("Failed to get country flag: " + e.getMessage(), e);
         }
     }
+    
+    @Override
+    public List<Country> getCountriesByAnyContinents(List<com.flagfinder.enumeration.Continent> continents) {
+        try {
+            if (continents == null || continents.isEmpty()) {
+                return getAllCountries();
+            }
+            
+            List<String> continentNames = continents.stream()
+                    .map(Enum::name)
+                    .toList();
+            
+            return countryRepository.findByAnyContinentIn(continentNames);
+        } catch (Exception e) {
+            log.error("Failed to get countries by continents: {}", continents, e);
+            throw new RuntimeException("Failed to get countries by continents: " + e.getMessage(), e);
+        }
+    }
+    
+    @Override
+    public Country getRandomCountryFromAnyContinents(List<com.flagfinder.enumeration.Continent> continents) {
+        try {
+            if (continents == null || continents.isEmpty()) {
+                Country randomCountry = countryRepository.findRandomCountry();
+                if (randomCountry == null) {
+                    throw new RuntimeException("No countries found in database");
+                }
+                return randomCountry;
+            }
+            
+            List<String> continentNames = continents.stream()
+                    .map(Enum::name)
+                    .toList();
+            
+            Country randomCountry = countryRepository.findRandomByAnyContinentIn(continentNames);
+            if (randomCountry == null) {
+                throw new RuntimeException("No countries found for continents: " + continents);
+            }
+            
+            return randomCountry;
+        } catch (Exception e) {
+            log.error("Failed to get random country from continents: {}", continents, e);
+            throw new RuntimeException("Failed to get random country from continents: " + e.getMessage(), e);
+        }
+    }
 }
