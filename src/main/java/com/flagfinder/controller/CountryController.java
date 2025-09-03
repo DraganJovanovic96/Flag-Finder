@@ -36,12 +36,9 @@ public class CountryController {
      */
     @PostMapping(consumes = "application/json", produces = "application/json")
     public ResponseEntity<Country> createCountry(@RequestBody CountryCreateDto countryCreateDto) {
-        try {
-            Country createdCountry = countryService.createCountryFromImageUrl(countryCreateDto);
-            return ResponseEntity.status(HttpStatus.CREATED).body(createdCountry);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
-        }
+        Country createdCountry = countryService.createCountryFromImageUrl(countryCreateDto);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(createdCountry);
     }
 
     /**
@@ -52,6 +49,7 @@ public class CountryController {
     @GetMapping
     public ResponseEntity<List<Country>> getAllCountries() {
         List<Country> countries = countryService.getAllCountries();
+
         return ResponseEntity.ok(countries);
     }
 
@@ -64,10 +62,8 @@ public class CountryController {
     @GetMapping("/{id}")
     public ResponseEntity<Country> getCountryById(@PathVariable UUID id) {
         Country country = countryService.getCountryById(id);
-        if (country != null) {
-            return ResponseEntity.ok(country);
-        }
-        return ResponseEntity.notFound().build();
+
+        return ResponseEntity.ok(country);
     }
 
     /**
@@ -79,43 +75,7 @@ public class CountryController {
     @GetMapping("/{id}/flag")
     @CrossOrigin(origins = "*")
     public ResponseEntity<byte[]> getCountryFlag(@PathVariable UUID id) {
-        try {
-            Country country = countryService.getCountryById(id);
-            if (country == null) {
-                System.out.println("Country not found for ID: " + id);
-                return ResponseEntity.notFound().build();
-            }
-            
-            if (country.getFlagImage() == null) {
-                System.out.println("Country found but no flag image for: " + country.getNameOfCounty());
-                return ResponseEntity.notFound().build();
-            }
-            
-            System.out.println("Serving flag image for: " + country.getNameOfCounty() + ", size: " + country.getFlagImage().length + " bytes");
-
-            String contentType = "image/png";
-            byte[] imageData = country.getFlagImage();
-            if (imageData.length > 4) {
-                String header = new String(imageData, 0, Math.min(100, imageData.length));
-                if (header.contains("<svg") || header.contains("<?xml")) {
-                    contentType = "image/svg+xml";
-                }
-                else if (imageData[0] == (byte)0xFF && imageData[1] == (byte)0xD8) {
-                    contentType = "image/jpeg";
-                }
-            }
-            
-            return ResponseEntity.ok()
-                    .header("Content-Type", contentType)
-                    .header("Cache-Control", "max-age=3600")
-                    .header("Access-Control-Allow-Origin", "*")
-                    .header("Access-Control-Allow-Methods", "GET")
-                    .header("Access-Control-Allow-Headers", "*")
-                    .body(country.getFlagImage());
-        } catch (Exception e) {
-
-            return ResponseEntity.internalServerError().build();
-        }
+        return countryService.getCountryFlagResponse(id);
     }
 
     /**
@@ -126,17 +86,21 @@ public class CountryController {
      */
     @GetMapping("/search")
     public ResponseEntity<List<CountrySearchDto>> searchCountries(@RequestParam String prefix) {
-        System.out.println("Search endpoint called with prefix: " + prefix);
-        
-        if (prefix == null || prefix.trim().isEmpty()) {
-            System.out.println("Empty prefix, returning bad request");
-            return ResponseEntity.badRequest().build();
-        }
-        
         List<CountrySearchDto> countries = countryService.searchCountriesByPrefix(prefix, 5);
-        System.out.println("Found " + countries.size() + " countries for prefix: " + prefix);
-        
+
         return ResponseEntity.ok(countries);
+    }
+
+    /**
+     * Loads countries from REST Countries API
+     * 
+     * @return ResponseEntity with success message
+     */
+    @PostMapping("/load-from-api")
+    public ResponseEntity<String> loadCountriesFromApi() {
+        String result = countryService.loadCountriesFromRestApi();
+
+        return ResponseEntity.ok(result);
     }
 
     /**
@@ -148,6 +112,7 @@ public class CountryController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteCountry(@PathVariable UUID id) {
         countryService.deleteCountry(id);
+        
         return ResponseEntity.noContent().build();
     }
 }
