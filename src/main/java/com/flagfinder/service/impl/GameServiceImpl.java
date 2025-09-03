@@ -4,6 +4,9 @@ import com.flagfinder.dto.GameDto;
 import com.flagfinder.dto.GameStartRequestDto;
 import com.flagfinder.dto.GuessRequestDto;
 import com.flagfinder.dto.GuessResponseDto;
+import com.flagfinder.dto.RoundSummaryDto;
+import com.flagfinder.dto.CountryDto;
+import com.flagfinder.dto.GuessDto;
 import com.flagfinder.enumeration.GameStatus;
 import com.flagfinder.enumeration.RoomStatus;
 import com.flagfinder.mapper.GameMapper;
@@ -16,6 +19,8 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.Hibernate;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -23,10 +28,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Random;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -45,8 +48,9 @@ public class GameServiceImpl implements GameService {
     private final RoundMapper roundMapper;
     private final SimpMessagingTemplate messagingTemplate;
     
-    private static final int TOTAL_ROUNDS = 2;
+    private static final int TOTAL_ROUNDS = 5;
     private static final int ROUND_DURATION_SECONDS = 7;
+    private static final int TOTAL_RECENT_GAMES = 10;
     
     @Override
     public Game getGame(UUID gameId) {
@@ -403,4 +407,85 @@ public class GameServiceImpl implements GameService {
         }
     }
     
+    @Override
+    @Transactional
+    public List<Round> getGameRounds(UUID gameId) {
+        gameRepository.findById(gameId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
+
+        List<Round> rounds = roundRepository.findByGameIdOrderByRoundNumber(gameId);
+
+        for (Round round : rounds) {
+            Hibernate.initialize(round.getGuesses());
+            Hibernate.initialize(round.getCountry());
+            for (Guess guess : round.getGuesses()) {
+                Hibernate.initialize(guess.getUser());
+                Hibernate.initialize(guess.getGuessedCountry());
+            }
+        }
+        
+        return rounds;
+    }
+    
+    @Override
+    @Transactional
+    public List<RoundSummaryDto> getGameRoundSummaries(UUID gameId) {
+        gameRepository.findById(gameId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
+
+        List<Round> rounds = roundRepository.findByGameIdOrderByRoundNumber(gameId);
+
+        return rounds.stream().map(round -> {
+            RoundSummaryDto dto = new RoundSummaryDto();
+            dto.setRoundNumber(round.getRoundNumber());
+
+            CountryDto countryDto = new CountryDto();
+            countryDto.setId(round.getCountry().getId());
+            countryDto.setNameOfCounty(round.getCountry().getNameOfCounty());
+            dto.setCountry(countryDto);
+
+            List<GuessDto> guessDtos = round.getGuesses().stream().map(guess -> {
+                GuessDto guessDto = new GuessDto();
+                guessDto.setUserGameName(guess.getUser().getGameName());
+                guessDto.setCorrect(guess.isCorrect());
+                if (guess.getGuessedCountry() != null) {
+                    guessDto.setGuessedCountryName(guess.getGuessedCountry().getNameOfCounty());
+                }
+                return guessDto;
+            }).collect(Collectors.toList());
+            
+            dto.setGuesses(guessDtos);
+            return dto;
+        }).collect(Collectors.toList());
+    }
+
+    @Override
+    public Long countOfWinningGames(String userName) {
+
+        return gameRepository.countByWinnerUserNameIgnoreCase(userName);
+    }
+
+    @Override
+    public int accuracyPercentage(String userName) {
+        Pageable pageable = PageRequest.of(0, TOTAL_RECENT_GAMES);
+
+        List<Game> games = gameRepository.findRecentGamesByUser(userName, pageable);
+
+        List<Round> rounds = games.stream()
+                .flatMap(game -> roundRepository.findByGameIdOrderByRoundNumber(game.getId()).stream())
+                .toList();
+
+        long correctGuesses = rounds.stream()
+                .map(round -> new AbstractMap.SimpleEntry<>(round,
+                        guessRepository.findOneByRoundIdAndGameName(round.getId(), userName)))
+                .filter(entry -> entry.getValue() != null) // ignore rounds without a guess
+                .filter(entry -> entry.getValue().getGuessedCountry().equals(entry.getKey().getCountry()))
+                .count();
+
+        int totalGuesses = rounds.size();
+
+        return totalGuesses > 0
+                    ? (int) ((correctGuesses * 100.0) / totalGuesses)
+                    : 0;
+        }
 }

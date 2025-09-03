@@ -1,11 +1,9 @@
 package com.flagfinder.controller;
 
-import com.flagfinder.dto.GameDto;
-import com.flagfinder.dto.GameStartRequestDto;
-import com.flagfinder.dto.GuessRequestDto;
-import com.flagfinder.dto.GuessResponseDto;
+import com.flagfinder.dto.*;
 import com.flagfinder.model.Game;
 import com.flagfinder.service.GameService;
+import com.flagfinder.service.impl.HelperMethods;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -33,6 +31,8 @@ public class GameController {
      */
     private final GameService gameService;
 
+    private final HelperMethods helperMethods;
+
     /**
      * Starts a new game from a room with exactly 2 players and returns a ResponseEntity object with status code 201 (Created)
      * and the created GameDto object in the response body.
@@ -44,6 +44,7 @@ public class GameController {
     @PostMapping("/start")
     public ResponseEntity<GameDto> startGame(@RequestBody GameStartRequestDto request) {
         GameDto game = gameService.startGame(request.getRoomId());
+
         return ResponseEntity.status(HttpStatus.CREATED).body(game);
     }
     
@@ -58,6 +59,7 @@ public class GameController {
     @PostMapping("/guess")
     public ResponseEntity<GuessResponseDto> submitGuess(@RequestBody GuessRequestDto guessRequest) {
         GuessResponseDto response = gameService.submitGuess(guessRequest);
+
         return ResponseEntity.ok(response);
     }
     
@@ -72,6 +74,7 @@ public class GameController {
     @GetMapping("/{gameId}")
     public ResponseEntity<GameDto> getGameState(@PathVariable UUID gameId) {
         GameDto game = gameService.getGameState(gameId);
+
         return ResponseEntity.ok(game);
     }
     
@@ -86,6 +89,7 @@ public class GameController {
     @PostMapping("/{gameId}/end")
     public ResponseEntity<GameDto> endGame(@PathVariable UUID gameId) {
         GameDto game = gameService.endGame(gameId);
+
         return ResponseEntity.ok(game);
     }
     
@@ -99,6 +103,28 @@ public class GameController {
     @GetMapping("/user/{userName}")
     public ResponseEntity<List<Game>> getGamesByUser(@PathVariable String userName) {
         List<Game> games = gameService.getGamesByUser(userName);
+
         return ResponseEntity.ok(games);
+    }
+    
+    /**
+     * Retrieves all rounds with guesses for a specific game by game ID and returns a ResponseEntity object with status code 200 (OK)
+     * and the list of RoundSummaryDto objects with their guesses in the response body.
+     *
+     * @param gameId the unique UUID identifier of the game whose rounds to retrieve
+     * @return a ResponseEntity object with status code 200 (OK) and the list of RoundSummaryDto objects with guesses in the response body
+     * @throws ResponseStatusException if the game is not found
+     */
+    @GetMapping("/{gameId}/rounds")
+    public ResponseEntity<List<RoundSummaryDto>> getGameRounds(@PathVariable UUID gameId) {
+        List<RoundSummaryDto> rounds = gameService.getGameRoundSummaries(gameId);
+
+        return ResponseEntity.ok(rounds);
+    }
+
+    @PostMapping("user/info")
+    public ResponseEntity<UserInfoDto> getUserWinningsCount(@RequestBody SendUserNameDto sendUserNameDto) {
+
+        return  ResponseEntity.ok(helperMethods.setPlayerInfoCard(sendUserNameDto.getUserName()));
     }
 }

@@ -1,6 +1,7 @@
 package com.flagfinder.service.impl;
 
 import com.flagfinder.dto.CountryCreateDto;
+import com.flagfinder.dto.CountrySearchDto;
 import com.flagfinder.model.Country;
 import com.flagfinder.repository.CountryRepository;
 import com.flagfinder.service.CountryService;
@@ -56,6 +57,21 @@ public class CountryServiceImpl implements CountryService {
     @Override
     public void deleteCountry(UUID id) {
         countryRepository.deleteById(id);
+    }
+    
+    @Override
+    public List<CountrySearchDto> searchCountriesByPrefix(String prefix, int limit) {
+        if (prefix == null || prefix.trim().isEmpty()) {
+            return List.of();
+        }
+        
+        List<Country> results = countryRepository.findByNameOfCountyStartingWithIgnoreCase(prefix.trim());
+        
+        // Limit results to specified number and convert to DTO
+        return results.stream()
+                .limit(limit)
+                .map(country -> new CountrySearchDto(country.getId(), country.getNameOfCounty()))
+                .toList();
     }
     
     /**

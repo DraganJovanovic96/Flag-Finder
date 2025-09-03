@@ -1,6 +1,7 @@
 package com.flagfinder.controller;
 
 import com.flagfinder.dto.CountryCreateDto;
+import com.flagfinder.dto.CountrySearchDto;
 import com.flagfinder.model.Country;
 import com.flagfinder.service.CountryService;
 import lombok.RequiredArgsConstructor;
@@ -115,6 +116,27 @@ public class CountryController {
 
             return ResponseEntity.internalServerError().build();
         }
+    }
+
+    /**
+     * Searches countries by name prefix
+     * 
+     * @param prefix the prefix to search for
+     * @return ResponseEntity with list of matching countries (max 5)
+     */
+    @GetMapping("/search")
+    public ResponseEntity<List<CountrySearchDto>> searchCountries(@RequestParam String prefix) {
+        System.out.println("Search endpoint called with prefix: " + prefix);
+        
+        if (prefix == null || prefix.trim().isEmpty()) {
+            System.out.println("Empty prefix, returning bad request");
+            return ResponseEntity.badRequest().build();
+        }
+        
+        List<CountrySearchDto> countries = countryService.searchCountriesByPrefix(prefix, 5);
+        System.out.println("Found " + countries.size() + " countries for prefix: " + prefix);
+        
+        return ResponseEntity.ok(countries);
     }
 
     /**

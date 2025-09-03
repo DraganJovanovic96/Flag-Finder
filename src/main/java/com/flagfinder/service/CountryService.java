@@ -1,6 +1,7 @@
 package com.flagfinder.service;
 
 import com.flagfinder.dto.CountryCreateDto;
+import com.flagfinder.dto.CountrySearchDto;
 import com.flagfinder.model.Country;
 
 import java.util.List;
@@ -40,4 +41,13 @@ public interface CountryService {
      * @param id the country ID
      */
     void deleteCountry(UUID id);
+    
+    /**
+     * Searches countries by name prefix (case-insensitive)
+     * 
+     * @param prefix the prefix to search for
+     * @param limit maximum number of results to return
+     * @return list of countries matching the prefix
+     */
+    List<CountrySearchDto> searchCountriesByPrefix(String prefix, int limit);
 }

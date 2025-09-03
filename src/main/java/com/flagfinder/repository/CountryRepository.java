@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -33,4 +34,7 @@ public interface CountryRepository extends JpaRepository<Country, UUID> {
             nativeQuery = true
     )
     Country findRandomCountry();
+
+    @Query("SELECT c FROM Country c WHERE LOWER(c.nameOfCounty) LIKE LOWER(CONCAT(:prefix, '%')) ORDER BY c.nameOfCounty")
+    List<Country> findByNameOfCountyStartingWithIgnoreCase(@Param("prefix") String prefix);
 }
