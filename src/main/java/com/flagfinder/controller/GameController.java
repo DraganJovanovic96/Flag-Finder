@@ -100,9 +100,9 @@ public class GameController {
      * @param userName the username of the player whose games to retrieve
      * @return a ResponseEntity object with status code 200 (OK) and the list of Game objects in the response body
      */
-    @GetMapping("/user/{userName}")
-    public ResponseEntity<List<Game>> getGamesByUser(@PathVariable String userName) {
-        List<Game> games = gameService.getGamesByUser(userName);
+    @GetMapping("/user/game-history")
+    public ResponseEntity<List<CompletedGameDto>> getGamesByUser() {
+        List<CompletedGameDto> games = gameService.getGamesByUser();
 
         return ResponseEntity.ok(games);
     }

@@ -46,9 +46,6 @@ public class Game extends BaseEntity{
     @Column(name = "guest_score")
     private Integer guestScore;
     
-    @Column(name = "total_rounds")
-    private Integer totalRounds;
-    
     @Enumerated(EnumType.STRING)
     @Column(name = "game_status")
     private GameStatus status;

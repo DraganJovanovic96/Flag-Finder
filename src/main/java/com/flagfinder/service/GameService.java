@@ -1,9 +1,6 @@
 package com.flagfinder.service;
 
-import com.flagfinder.dto.GameDto;
-import com.flagfinder.dto.GuessRequestDto;
-import com.flagfinder.dto.GuessResponseDto;
-import com.flagfinder.dto.RoundSummaryDto;
+import com.flagfinder.dto.*;
 import com.flagfinder.model.Game;
 import com.flagfinder.model.Round;
 import org.springframework.data.domain.Pageable;
@@ -20,7 +17,7 @@ public interface GameService {
     /**
      * Gets all games for a user
      */
-    List<Game> getGamesByUser(String userName);
+    List<CompletedGameDto> getGamesByUser();
     
     /**
      * Gets all completed games

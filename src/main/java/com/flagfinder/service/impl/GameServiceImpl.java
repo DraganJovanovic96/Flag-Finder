@@ -1,12 +1,6 @@
 package com.flagfinder.service.impl;
 
-import com.flagfinder.dto.GameDto;
-import com.flagfinder.dto.GameStartRequestDto;
-import com.flagfinder.dto.GuessRequestDto;
-import com.flagfinder.dto.GuessResponseDto;
-import com.flagfinder.dto.RoundSummaryDto;
-import com.flagfinder.dto.CountryDto;
-import com.flagfinder.dto.GuessDto;
+import com.flagfinder.dto.*;
 import com.flagfinder.enumeration.GameStatus;
 import com.flagfinder.enumeration.RoomStatus;
 import com.flagfinder.mapper.GameMapper;
@@ -16,6 +10,7 @@ import com.flagfinder.repository.*;
 import com.flagfinder.service.CountryService;
 import com.flagfinder.service.GameService;
 import com.flagfinder.service.GameTimerService;
+import com.flagfinder.service.UserService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -46,6 +41,7 @@ public class GameServiceImpl implements GameService {
     private final GuessRepository guessRepository;
     
     private final GameTimerService gameTimerService;
+    private final UserService userService;
     private final GameMapper gameMapper;
     private final RoundMapper roundMapper;
     private final SimpMessagingTemplate messagingTemplate;
@@ -61,10 +57,13 @@ public class GameServiceImpl implements GameService {
     }
     
     @Override
-    public List<Game> getGamesByUser(String userName) {
+    public List<CompletedGameDto> getGamesByUser() {
+        String userName = userService.getUserFromAuthentication().getGameName();
+
         return gameRepository.findAll().stream()
                 .filter(game -> game.getUsers().stream()
                         .anyMatch(user -> userName.equals(user.getGameName())))
+                .map(gameMapper::gameToCompletedGameDto)
                 .toList();
     }
     
@@ -100,7 +99,6 @@ public class GameServiceImpl implements GameService {
         game.setUsers(Arrays.asList(room.getHost(), room.getGuest()));
         game.setHostScore(0);
         game.setGuestScore(0);
-        game.setTotalRounds(TOTAL_ROUNDS);
         game.setStatus(GameStatus.IN_PROGRESS);
         game.setStartedAt(LocalDateTime.now());
         game.setContinents(continents != null ? continents : new ArrayList<>());
