@@ -79,6 +79,14 @@ public interface CountryService {
      * @throws RuntimeException if loading fails
      */
     String loadCountriesFromRestApi();
+
+    /**
+     * Loads countries from REST Countries API and saves them to database
+     *
+     * @return success message
+     * @throws RuntimeException if loading fails
+     */
+    String loadUsStatesFromRestApi();
     
     /**
      * Gets a country's flag image with content type detection

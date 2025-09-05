@@ -104,9 +104,16 @@ public class CountryController {
      * 
      * @return ResponseEntity with success message
      */
-    @PostMapping("/load-from-api")
+    @PostMapping("/load-countries-api")
     public ResponseEntity<String> loadCountriesFromApi() {
         String result = countryService.loadCountriesFromRestApi();
+
+        return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/load-us-states-api")
+    public ResponseEntity<String> loadUsStatesApi() {
+        String result = countryService.loadUsStatesFromRestApi();
 
         return ResponseEntity.ok(result);
     }

@@ -7,5 +7,6 @@ public enum Continent {
     SOUTH_AMERICA,
     ANTARCTICA,
     EUROPE,
-    AUSTRALIA
+    AUSTRALIA,
+    USA_STATE
 }

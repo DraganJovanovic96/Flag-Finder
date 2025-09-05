@@ -1,5 +1,6 @@
 package com.flagfinder.service.impl;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.flagfinder.dto.CountryCreateDto;
 import com.flagfinder.dto.CountrySearchDto;
 import com.flagfinder.dto.RestCountryDto;
@@ -21,16 +22,18 @@ import java.io.InputStream;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class CountryServiceImpl implements CountryService {
-    
+
     private final CountryRepository countryRepository;
     private final RestTemplate restTemplate = new RestTemplate();
-    
+
     @Override
     public Country createCountryFromImageUrl(CountryCreateDto countryCreateDto) {
         try {
@@ -47,39 +50,39 @@ public class CountryServiceImpl implements CountryService {
                     throw new RuntimeException("Failed to download flag image", e);
                 }
             }
-            
+
             return countryRepository.save(country);
         } catch (Exception e) {
             log.error("Failed to create country", e);
             throw new RuntimeException("Failed to create country: " + e.getMessage(), e);
         }
     }
-    
+
     @Override
     public List<Country> getAllCountries() {
         return countryRepository.findAll();
     }
-    
+
     @Override
     public Country getCountryById(UUID id) {
         return countryRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Country not found with ID: " + id));
     }
-    
+
     @Override
     public void deleteCountry(UUID id) {
         countryRepository.deleteById(id);
     }
-    
+
     @Override
     public List<CountrySearchDto> searchCountriesByPrefix(String prefix, int limit) {
         try {
             if (prefix == null || prefix.trim().isEmpty()) {
                 throw new RuntimeException("Search prefix cannot be empty");
             }
-            
+
             List<Country> results = countryRepository.findByNameOfCountyStartingWithIgnoreCase(prefix.trim());
-            
+
             // Limit results to specified number and convert to DTO
             return results.stream()
                     .limit(limit)
@@ -90,29 +93,28 @@ public class CountryServiceImpl implements CountryService {
             throw new RuntimeException("Failed to search countries: " + e.getMessage(), e);
         }
     }
-    
+
     @Override
     public String loadCountriesFromRestApi() {
-        log.info("Starting to load countries from REST Countries API");
-        
         try {
             String apiUrl = "https://restcountries.com/v3.1/all?fields=name,flags,continents";
-            
+
             ResponseEntity<List<RestCountryDto>> response = restTemplate.exchange(
-                apiUrl,
-                HttpMethod.GET,
-                null,
-                new ParameterizedTypeReference<List<RestCountryDto>>() {}
+                    apiUrl,
+                    HttpMethod.GET,
+                    null,
+                    new ParameterizedTypeReference<List<RestCountryDto>>() {
+                    }
             );
-            
+
             List<RestCountryDto> restCountries = response.getBody();
             if (restCountries == null || restCountries.isEmpty()) {
                 log.warn("No countries received from REST Countries API");
                 return "No countries received from REST Countries API";
             }
-            
+
             log.info("Received {} countries from API, processing...", restCountries.size());
-            
+
             int savedCount = 0;
             for (RestCountryDto restCountry : restCountries) {
                 try {
@@ -121,8 +123,8 @@ public class CountryServiceImpl implements CountryService {
                         // Check if country already exists by name
                         List<Country> existingCountries = countryRepository.findByNameOfCountyStartingWithIgnoreCase(country.getNameOfCounty());
                         boolean exists = existingCountries.stream()
-                            .anyMatch(existing -> existing.getNameOfCounty().equalsIgnoreCase(country.getNameOfCounty()));
-                        
+                                .anyMatch(existing -> existing.getNameOfCounty().equalsIgnoreCase(country.getNameOfCounty()));
+
                         if (!exists) {
                             countryRepository.save(country);
                             savedCount++;
@@ -135,17 +137,62 @@ public class CountryServiceImpl implements CountryService {
                     log.error("Failed to process country: {}", restCountry.getName() != null ? restCountry.getName().getCommon() : "unknown", e);
                 }
             }
-            
+
             String successMessage = "Successfully loaded " + savedCount + " countries from REST Countries API";
             log.info(successMessage);
             return successMessage;
-            
+
         } catch (Exception e) {
             log.error("Failed to load countries from REST Countries API", e);
             throw new RuntimeException("Failed to load countries from API: " + e.getMessage(), e);
         }
     }
-    
+
+    @Override
+    public String loadUsStatesFromRestApi() {
+       try {
+           AtomicInteger savedCount = new AtomicInteger();
+           String url = "https://flagcdn.com/en/codes.json";
+
+           // Parse JSON into Map<String, String>
+           ObjectMapper mapper = new ObjectMapper();
+           try (InputStream is = new URL(url).openStream()) {
+               Map<String, String> countryCodes = mapper.readValue(is, Map.class);
+
+               // Loop through and find US states
+               countryCodes.entrySet().stream()
+                       .filter(entry -> entry.getKey().startsWith("us-"))
+                       .forEach(entry -> {
+                           savedCount.getAndIncrement();
+                           String code = entry.getKey();
+                           String name = entry.getValue();
+                           String flagUrl = "https://flagcdn.com/" + code + ".svg";
+                           Country country = new Country();
+                           List<Continent> continents = new ArrayList<>();
+                           continents.add(Continent.USA_STATE);
+                           country.setNameOfCounty(name);
+                           byte[] flagImageBytes = null;
+                           try {
+                               flagImageBytes = downloadImageFromUrl(flagUrl);
+                           } catch (IOException e) {
+                               log.error("Failed to download flag image for {}: {}", country.getNameOfCounty(), flagUrl, e);
+                           }
+                           country.setFlagImage(flagImageBytes);
+                           country.setContinents(continents);
+                            countryRepository.save(country);
+                       });
+           }
+
+           String successMessage = "Successfully loaded " + savedCount + " countries from FLAG CDN API";
+           log.info(successMessage);
+           return successMessage;
+       }
+       catch (Exception e) {
+        log.error("Failed to load countries from REST US STATES API", e);
+        throw new RuntimeException("Failed to load REST US STATES from API: " + e.getMessage(), e);
+        }
+    }
+
     private Country convertRestCountryToEntity(RestCountryDto restCountry) {
         if (restCountry.getName() == null || restCountry.getName().getCommon() == null) {
             log.warn("Skipping country with missing name data");
