@@ -97,7 +97,6 @@ public class GameController {
      * Retrieves all games for a specific user by username and returns a ResponseEntity object with status code 200 (OK)
      * and the list of Game objects in the response body.
      *
-     * @param userName the username of the player whose games to retrieve
      * @return a ResponseEntity object with status code 200 (OK) and the list of Game objects in the response body
      */
     @GetMapping("/user/game-history")

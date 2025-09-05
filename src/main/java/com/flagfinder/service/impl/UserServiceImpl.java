@@ -268,4 +268,15 @@ public class UserServiceImpl implements UserService {
 
         return new PageImpl<>(userDtos, resultPage.getPageable(), resultPage.getTotalElements());
     }
+
+    @Override
+    public UserProfileDto getUserProfileByEmail(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found with email: " + email));
+        
+        UserProfileDto userProfileDto = new UserProfileDto();
+        userProfileDto.setGameName(user.getGameName());
+        
+        return userProfileDto;
+    }
 }

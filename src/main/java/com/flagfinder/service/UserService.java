@@ -107,4 +107,13 @@ public interface UserService {
      * @return a Page of UsersDto objects that match the specified query
      */
     Page<UserDto> findFilteredUsers(boolean isDeleted, UserFiltersQueryDto userFiltersQueryDto, Integer page, Integer pageSize);
+
+    /**
+     * Retrieves user profile information (email and gameName) by email address.
+     *
+     * @param email The email address of the user to retrieve profile for
+     * @return UserProfileDto containing email and gameName
+     * @throws ResponseStatusException If a user with the specified email address is not found
+     */
+    UserProfileDto getUserProfileByEmail(String email);
 }
