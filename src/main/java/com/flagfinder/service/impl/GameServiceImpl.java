@@ -46,8 +46,8 @@ public class GameServiceImpl implements GameService {
     private final RoundMapper roundMapper;
     private final SimpMessagingTemplate messagingTemplate;
     
-    private static final int TOTAL_ROUNDS = 5;
-    private static final int ROUND_DURATION_SECONDS = 7;
+    private static final int TOTAL_ROUNDS = 3;
+    private static final int ROUND_DURATION_SECONDS = 8;
     private static final int TOTAL_RECENT_GAMES = 10;
     
     @Override
@@ -102,6 +102,7 @@ public class GameServiceImpl implements GameService {
         game.setStatus(GameStatus.IN_PROGRESS);
         game.setStartedAt(LocalDateTime.now());
         game.setContinents(continents != null ? continents : new ArrayList<>());
+        game.setTotalRounds(TOTAL_ROUNDS);
         
         Game savedGame = gameRepository.save(game);
         
@@ -111,6 +112,8 @@ public class GameServiceImpl implements GameService {
         startNewRound(savedGame, 1, continents);
 
         GameDto gameDto = gameMapper.gameToGameDto(savedGame);
+
+        System.out.println(gameDto.getTotalRounds());
         populateCurrentRoundData(gameDto, savedGame);
         
         try {

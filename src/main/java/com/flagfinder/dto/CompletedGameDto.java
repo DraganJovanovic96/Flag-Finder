@@ -16,5 +16,6 @@ public class CompletedGameDto {
     private Integer guestScore;
     private List<RoundDto> roundDtos;
     private LocalDateTime startedAt;
+    private Integer totalRounds;
     private LocalDateTime endedAt;
 }

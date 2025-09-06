@@ -2,6 +2,7 @@ package com.flagfinder.dto;
 
 import lombok.Data;
 
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -13,4 +14,5 @@ public class RoundDto {
     private byte[] flagImage;
     private Long timeRemaining;
     private boolean roundActive;
+    private List<GuessDto> guesses;
 }

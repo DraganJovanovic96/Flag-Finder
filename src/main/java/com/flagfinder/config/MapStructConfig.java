@@ -65,4 +65,12 @@ public class MapStructConfig {
     public com.flagfinder.mapper.RoundMapper roundMapper() {
         return Mappers.getMapper(com.flagfinder.mapper.RoundMapper.class);
     }
+
+    /**
+     * This method creates a bean of guessMapper, so it can be used by IoC.
+     */
+    @Bean
+    public com.flagfinder.mapper.GuessMapper guessMapper() {
+        return Mappers.getMapper(com.flagfinder.mapper.GuessMapper.class);
+    }
 }

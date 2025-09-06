@@ -39,6 +39,9 @@ public class Game extends BaseEntity{
     
     @Column(name = "winner_user_name")
     private String winnerUserName;
+
+    @Column(name = "total_rounds")
+    private Integer totalRounds;
     
     @Column(name = "host_score")
     private Integer hostScore;
