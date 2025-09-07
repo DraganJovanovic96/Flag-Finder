@@ -1,0 +1,18 @@
+package com.flagfinder.dto;
+
+import lombok.Data;
+
+import java.util.List;
+import java.util.UUID;
+
+@Data
+public class SinglePlayerRoundDto {
+    private UUID id;
+    private Integer roundNumber;
+    private String countryName;
+    private UUID countryId;
+    private byte[] flagImage;
+    private Long timeRemaining;
+    private boolean roundActive;
+    private GuessDto guess;
+}

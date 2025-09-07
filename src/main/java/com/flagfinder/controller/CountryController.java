@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.UUID;
@@ -59,6 +60,20 @@ public class CountryController {
         }
 
         return ResponseEntity.ok(countries);
+    }
+
+    /**
+     * Retrieves all rounds with guesses for a specific game by game ID and returns a ResponseEntity object with status code 200 (OK)
+     * and the list of RoundSummaryDto objects with their guesses in the response body.
+     *
+     * @param countryName the unique UUID identifier of the game whose rounds to retrieve
+     * @return a ResponseEntity object with status code 200 (OK) and the list of RoundSummaryDto objects with guesses in the response body
+     * @throws ResponseStatusException if the game is not found
+     */
+    @DeleteMapping("/{countryName}")
+    public ResponseEntity<Void> deleteCountry(@PathVariable String countryName) {
+        countryService.deleteCountryByName(countryName);
+        return ResponseEntity.noContent().build();
     }
 
     /**
@@ -116,19 +131,6 @@ public class CountryController {
         String result = countryService.loadUsStatesFromRestApi();
 
         return ResponseEntity.ok(result);
-    }
-
-    /**
-     * Deletes a country by ID
-     * 
-     * @param id the country ID
-     * @return ResponseEntity with no content
-     */
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteCountry(@PathVariable UUID id) {
-        countryService.deleteCountry(id);
-        
-        return ResponseEntity.noContent().build();
     }
     
     /**

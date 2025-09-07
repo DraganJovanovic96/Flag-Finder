@@ -20,7 +20,9 @@ public interface CountryService {
      * @throws RuntimeException if creation fails
      */
     Country createCountryFromImageUrl(CountryCreateDto countryCreateDto);
-    
+
+    public void deleteCountryByName(String countryName);
+
     /**
      * Gets all countries
      * 
@@ -54,13 +56,6 @@ public interface CountryService {
      * @throws RuntimeException if country not found
      */
     Country getCountryById(UUID id);
-    
-    /**
-     * Deletes a country by ID
-     * 
-     * @param id the country ID
-     */
-    void deleteCountry(UUID id);
     
     /**
      * Searches countries by name prefix (case-insensitive)

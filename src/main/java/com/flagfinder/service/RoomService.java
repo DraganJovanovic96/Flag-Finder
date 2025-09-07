@@ -1,9 +1,7 @@
 package com.flagfinder.service;
 
-import com.flagfinder.dto.InviteFriendRequestDto;
-import com.flagfinder.dto.InviteSentDto;
-import com.flagfinder.dto.JoinRoomRequestDto;
-import com.flagfinder.dto.RoomDto;
+import com.flagfinder.dto.*;
+
 import java.util.UUID;
 
 public interface RoomService {
@@ -12,6 +10,11 @@ public interface RoomService {
      * Creates a new room for the specified host
      */
     RoomDto createRoom();
+
+    /**
+     * Creates a new room for the specified host
+     */
+    SinglePlayerRoomDto createSinglePlayerRoom();
     
     /**
      * Joins a room as a guest

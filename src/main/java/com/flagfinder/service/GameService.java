@@ -28,6 +28,8 @@ public interface GameService {
      * Starts a new game from a room with 2 players
      */
     GameDto startGame(UUID roomId, java.util.List<com.flagfinder.enumeration.Continent> continents);
+
+    SinglePlayerGameDto startSinglePlayerGame(UUID roomId, java.util.List<com.flagfinder.enumeration.Continent> continents);
     
     /**
      * Submits a guess for the current round
@@ -57,4 +59,14 @@ public interface GameService {
     Long countOfWinningGames(String userName);
 
     int accuracyPercentage (String userName);
+
+    /**
+     * Gets single player game by room ID
+     */
+    SinglePlayerGameDto getSinglePlayerGameByRoom(UUID roomId);
+
+    /**
+     * Gets single player game by game ID
+     */
+    SinglePlayerGameDto getSinglePlayerGameById(UUID gameId);
 }

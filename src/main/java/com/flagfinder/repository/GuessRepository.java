@@ -1,5 +1,6 @@
 package com.flagfinder.repository;
 
+import com.flagfinder.model.Country;
 import com.flagfinder.model.Guess;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -15,4 +16,5 @@ public interface GuessRepository extends JpaRepository<Guess,UUID> {
   @Query("SELECT g FROM Guess g WHERE g.round.id = :roundId AND g.user.gameName = :gameName")
   Guess findOneByRoundIdAndGameName(@Param("roundId") UUID roundId, @Param("gameName") String gameName);
 
+  void deleteByGuessedCountry(Country country);
 }

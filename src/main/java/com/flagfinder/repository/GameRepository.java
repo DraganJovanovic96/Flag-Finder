@@ -16,7 +16,7 @@ import java.util.UUID;
 @Repository
 public interface GameRepository extends JpaRepository <Game, UUID> {
     Game findByRoomAndStatus(Room room, GameStatus status);
-    
+
     @Query("SELECT DISTINCT g FROM Game g " +
            "LEFT JOIN FETCH g.room " +
            "LEFT JOIN FETCH g.users " +
@@ -32,4 +32,13 @@ public interface GameRepository extends JpaRepository <Game, UUID> {
     ORDER BY g.createdAt DESC
     """)
     List<Game> findRecentGamesByUser(@Param("userName") String userName, Pageable pageable);
+
+    @Query("""
+SELECT DISTINCT g FROM Game g
+JOIN g.users u
+WHERE LOWER(u.gameName) = LOWER(:userName)
+AND SIZE(g.users) > 1
+ORDER BY g.createdAt DESC
+""")
+    List<Game> findAllMultiplayerByUser(@Param("userName") String userName);
 }

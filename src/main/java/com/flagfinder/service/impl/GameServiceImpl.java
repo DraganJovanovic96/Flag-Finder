@@ -1,10 +1,13 @@
 package com.flagfinder.service.impl;
 
 import com.flagfinder.dto.*;
+import com.flagfinder.enumeration.Continent;
 import com.flagfinder.enumeration.GameStatus;
 import com.flagfinder.enumeration.RoomStatus;
 import com.flagfinder.mapper.GameMapper;
 import com.flagfinder.mapper.RoundMapper;
+import com.flagfinder.mapper.SinglePlayerGameMapper;
+import com.flagfinder.mapper.SinglePlayerRoundMapper;
 import com.flagfinder.model.*;
 import com.flagfinder.repository.*;
 import com.flagfinder.service.CountryService;
@@ -33,17 +36,22 @@ import java.util.stream.Collectors;
 public class GameServiceImpl implements GameService {
     
     private final GameRepository gameRepository;
+    private final SinglePlayerGameRepository singlePlayerGameRepository;
     private final UserRepository userRepository;
     private final RoomRepository roomRepository;
+    private final SinglePlayerRoomRepository singlePlayerRoomRepository;
     private final CountryRepository countryRepository;
     private final CountryService countryService;
     private final RoundRepository roundRepository;
+    private final SinglePlayerRoundRepository singlePlayerRoundRepository;
     private final GuessRepository guessRepository;
     
     private final GameTimerService gameTimerService;
     private final UserService userService;
     private final GameMapper gameMapper;
+    private final SinglePlayerGameMapper singlePlayerGameMapper;
     private final RoundMapper roundMapper;
+    private final SinglePlayerRoundMapper singlePlayerRoundMapper;
     private final SimpMessagingTemplate messagingTemplate;
     
     private static final int TOTAL_ROUNDS = 3;
@@ -60,9 +68,7 @@ public class GameServiceImpl implements GameService {
     public List<CompletedGameDto> getGamesByUser() {
         String userName = userService.getUserFromAuthentication().getGameName();
 
-        return gameRepository.findAll().stream()
-                .filter(game -> game.getUsers().stream()
-                        .anyMatch(user -> userName.equals(user.getGameName())))
+        return gameRepository.findAllMultiplayerByUser(userName).stream()
                 .map(gameMapper::gameToCompletedGameDto)
                 .toList();
     }
@@ -138,12 +144,76 @@ public class GameServiceImpl implements GameService {
         
         return gameDto;
     }
-    
+
+    @Override
+    public SinglePlayerGameDto startSinglePlayerGame(UUID roomId, List<Continent> continents) {
+        SinglePlayerRoom singlePlayerRoom = singlePlayerRoomRepository.findById(roomId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Room not found"));
+
+        if (singlePlayerRoom.getHost() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Room doesn't have a host");
+        }
+
+        if (singlePlayerRoom.getStatus() != com.flagfinder.enumeration.RoomStatus.ROOM_READY_FOR_START) {
+            singlePlayerRoom.setStatus(com.flagfinder.enumeration.RoomStatus.ROOM_READY_FOR_START);
+            singlePlayerRoomRepository.save(singlePlayerRoom);
+        }
+
+        SinglePlayerGame singlePlayerGame = new SinglePlayerGame();
+        singlePlayerGame.setSinglePlayerRoom(singlePlayerRoom);
+        singlePlayerGame.setUser(singlePlayerRoom.getHost());
+        singlePlayerGame.setHostScore(0);
+        singlePlayerGame.setStatus(GameStatus.IN_PROGRESS);
+        singlePlayerGame.setStartedAt(LocalDateTime.now());
+        singlePlayerGame.setContinents(continents != null ? continents : new ArrayList<>());
+        singlePlayerGame.setTotalRounds(TOTAL_ROUNDS);
+
+        singlePlayerGameRepository.save(singlePlayerGame);
+
+        singlePlayerRoom.setStatus(com.flagfinder.enumeration.RoomStatus.GAME_IN_PROGRESS);
+        singlePlayerRoomRepository.save(singlePlayerRoom);
+
+        startNewSinglePlayerRound(singlePlayerGame, 1, continents);
+
+        SinglePlayerGameDto singlePlayerGameDto = singlePlayerGameMapper.singlePlayerGameToSinglePlayerGameDto(singlePlayerGame);
+
+        populateCurrentSinglePlayerRoundData(singlePlayerGameDto, singlePlayerGame);
+
+        try {
+            messagingTemplate.convertAndSendToUser(
+                    singlePlayerRoom.getHost().getGameName(),
+                    "/queue/game-started",
+                    singlePlayerGameDto
+            );
+        } catch (Exception e) {
+            log.error("Failed to send game-started notification to host {}: {}", singlePlayerRoom.getHost().getGameName(), e.getMessage(), e);
+        }
+
+        return singlePlayerGameDto;
+    }
+
     @Override
     @Transactional
     public GuessResponseDto submitGuess(GuessRequestDto guessRequest) {
-        Game game = gameRepository.findByIdWithRelations(guessRequest.getGameId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
+        Game game = null;
+        SinglePlayerGame singlePlayerGame = null;
+        
+        try {
+            game = gameRepository.findByIdWithRelations(guessRequest.getGameId())
+                    .orElse(null);
+        } catch (Exception e) {
+        }
+        
+        if (game == null) {
+            singlePlayerGame = singlePlayerGameRepository.findByIdWithRelations(guessRequest.getGameId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
+            
+            if (singlePlayerGame.getStatus() != GameStatus.IN_PROGRESS) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Game is not in progress");
+            }
+            
+            return submitSinglePlayerGuess(guessRequest, singlePlayerGame);
+        }
         
         if (game.getStatus() != GameStatus.IN_PROGRESS) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Game is not in progress");
@@ -184,7 +254,6 @@ public class GameServiceImpl implements GameService {
         
         if (currentRound.getGuesses().size() >= 2 || shouldEndRound(currentRound)) {
             log.info("Ending round {} - both players guessed or timeout", currentRound.getRoundNumber());
-            // Explicitly initialize collections before calling endCurrentRound
             Hibernate.initialize(game.getUsers());
             Hibernate.initialize(game.getRounds());
             if (game.getRoom() != null) {
@@ -197,8 +266,7 @@ public class GameServiceImpl implements GameService {
         
         GameDto gameDto = gameMapper.gameToGameDto(gameRepository.save(game));
         populateCurrentRoundData(gameDto, game);
-        
-        // Create guess response with feedback
+
         GuessResponseDto response = new GuessResponseDto();
         response.setGame(gameDto);
         response.setCorrect(guess.isCorrect());
@@ -220,7 +288,6 @@ public class GameServiceImpl implements GameService {
         Game game = gameRepository.findByIdWithRelations(gameId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
         
-        // Explicitly initialize collections
         Hibernate.initialize(game.getUsers());
         Hibernate.initialize(game.getRounds());
         if (game.getRoom() != null) {
@@ -238,7 +305,6 @@ public class GameServiceImpl implements GameService {
         Game game = gameRepository.findByIdWithRelations(gameId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
         
-        // Explicitly initialize collections
         Hibernate.initialize(game.getUsers());
         Hibernate.initialize(game.getRounds());
         if (game.getRoom() != null) {
@@ -264,8 +330,7 @@ public class GameServiceImpl implements GameService {
         
         GameDto gameDto = gameMapper.gameToGameDto(gameRepository.save(game));
         populateCurrentRoundData(gameDto, game);
-        
-        // Send WebSocket notification for game completion
+
         try {
             messagingTemplate.convertAndSendToUser(
                     room.getHost().getGameName(),
@@ -304,18 +369,15 @@ public class GameServiceImpl implements GameService {
         round.setCountry(randomCountry);
         round.setRoundNumber(roundNumber);
         
-        // Cancel any existing timers for this game before starting new one
         log.info("Cancelling existing timers for game {}", game.getId());
         gameTimerService.cancelGameTimers(game.getId());
         roundRepository.save(round);
         log.info("Starting timer for game {} round {} with duration {} seconds", game.getId(), roundNumber, ROUND_DURATION_SECONDS);
         gameTimerService.startRoundTimer(game.getId(), roundNumber, ROUND_DURATION_SECONDS);
         
-        // Refresh game entity to include the new round with all relations
         Game refreshedGame = gameRepository.findByIdWithRelations(game.getId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
         
-        // Initialize collections for WebSocket notification
         Hibernate.initialize(refreshedGame.getUsers());
         Hibernate.initialize(refreshedGame.getRounds());
         if (refreshedGame.getRoom() != null) {
@@ -325,9 +387,8 @@ public class GameServiceImpl implements GameService {
         GameDto gameDto = gameMapper.gameToGameDto(refreshedGame);
         populateCurrentRoundData(gameDto, refreshedGame);
         Room room = refreshedGame.getRoom();
-        
-        // Send WebSocket notifications for round start
-        log.info("Sending WebSocket notifications for round {} start to host {} and guest {}", 
+
+        log.info("Sending WebSocket notifications for round {} start to host {} and guest {}",
                 roundNumber, room.getHost().getGameName(), room.getGuest().getGameName());
         try {
             messagingTemplate.convertAndSendToUser(
@@ -351,6 +412,48 @@ public class GameServiceImpl implements GameService {
             log.error("Failed to send round-started notification to guest {}: {}", room.getGuest().getGameName(), e.getMessage(), e);
         }
     }
+
+    private void startNewSinglePlayerRound(SinglePlayerGame singlePlayerGame, int roundNumber, List<com.flagfinder.enumeration.Continent> continents) {
+
+        Country randomCountry;
+        if (continents != null && !continents.isEmpty()) {
+            randomCountry = countryService.getRandomCountryFromAnyContinents(continents);
+        } else {
+            randomCountry = countryService.getRandomCountryFromAnyContinents(null);
+        }
+
+        SinglePlayerRound singlePlayerRound = new SinglePlayerRound();
+        singlePlayerRound.setSinglePlayerGame(singlePlayerGame);
+        singlePlayerRound.setCountry(randomCountry);
+        singlePlayerRound.setRoundNumber(roundNumber);
+
+        gameTimerService.cancelGameTimers(singlePlayerGame.getId());
+        singlePlayerRoundRepository.save(singlePlayerRound);
+        gameTimerService.startRoundTimer(singlePlayerGame.getId(), roundNumber, ROUND_DURATION_SECONDS);
+
+        SinglePlayerGame refreshedGame = singlePlayerGameRepository.findByIdWithRelations(singlePlayerGame.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
+
+        Hibernate.initialize(refreshedGame.getUser());
+        Hibernate.initialize(refreshedGame.getRounds());
+        if (refreshedGame.getSinglePlayerRoom() != null) {
+            Hibernate.initialize(refreshedGame.getSinglePlayerRoom());
+        }
+
+        SinglePlayerGameDto singlePlayerGameDto = singlePlayerGameMapper.singlePlayerGameToSinglePlayerGameDto(refreshedGame);
+        populateCurrentSinglePlayerRoundData(singlePlayerGameDto, refreshedGame);
+        SinglePlayerRoom singlePlayerRoom = refreshedGame.getSinglePlayerRoom();
+
+        try {
+            messagingTemplate.convertAndSendToUser(
+                    singlePlayerRoom.getHost().getGameName(),
+                    "/queue/round-started",
+                    singlePlayerGameDto
+            );
+        } catch (Exception e) {
+            log.error("Failed to send round-started notification to host {}: {}", singlePlayerRoom.getHost().getGameName(), e.getMessage(), e);
+        }
+    }
     
     private void endCurrentRound(Game game, int roundNumber) {
         log.info("Ending round {} for game {}, total rounds: {}", roundNumber, game.getId(), TOTAL_ROUNDS);
@@ -367,21 +470,85 @@ public class GameServiceImpl implements GameService {
     public void handleRoundTimeout(UUID gameId, Integer roundNumber) {
         try {
             log.info("Handling timeout for game {} round {}", gameId, roundNumber);
+            
             Game game = gameRepository.findByIdWithRelations(gameId).orElse(null);
             if (game != null && game.getStatus() == GameStatus.IN_PROGRESS) {
-                // Explicitly initialize lazy collections to prevent LazyInitializationException
                 Hibernate.initialize(game.getUsers());
                 Hibernate.initialize(game.getRounds());
                 if (game.getRoom() != null) {
                     Hibernate.initialize(game.getRoom());
                 }
                 endCurrentRound(game, roundNumber);
+                return;
+            }
+
+            SinglePlayerGame singlePlayerGame = singlePlayerGameRepository.findByIdWithRelations(gameId).orElse(null);
+            if (singlePlayerGame != null && singlePlayerGame.getStatus() == GameStatus.IN_PROGRESS) {
+                Hibernate.initialize(singlePlayerGame.getUser());
+                Hibernate.initialize(singlePlayerGame.getRounds());
+                if (singlePlayerGame.getSinglePlayerRoom() != null) {
+                    Hibernate.initialize(singlePlayerGame.getSinglePlayerRoom());
+                }
+                endCurrentSinglePlayerRound(singlePlayerGame, roundNumber);
             }
         } catch (Exception e) {
             log.error("Error handling round timeout for game {} round {}", gameId, roundNumber, e);
         }
     }
     
+    private void endCurrentSinglePlayerRound(SinglePlayerGame singlePlayerGame, int roundNumber) {
+        log.info("Ending single player round {} for game {}, total rounds: {}", roundNumber, singlePlayerGame.getId(), TOTAL_ROUNDS);
+        
+        if (roundNumber < TOTAL_ROUNDS) {
+            log.info("Starting new single player round {} for game {}", roundNumber + 1, singlePlayerGame.getId());
+            startNewSinglePlayerRound(singlePlayerGame, roundNumber + 1, singlePlayerGame.getContinents());
+        } else {
+            log.info("Final single player round completed, ending game {}", singlePlayerGame.getId());
+            endSinglePlayerGame(singlePlayerGame.getId());
+        }
+    }
+    
+    private void endSinglePlayerGame(UUID gameId) {
+        log.info("Ending single player game {}", gameId);
+        
+        SinglePlayerGame singlePlayerGame = singlePlayerGameRepository.findByIdWithRelations(gameId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Single player game not found"));
+        
+        Hibernate.initialize(singlePlayerGame.getUser());
+        Hibernate.initialize(singlePlayerGame.getRounds());
+        if (singlePlayerGame.getSinglePlayerRoom() != null) {
+            Hibernate.initialize(singlePlayerGame.getSinglePlayerRoom());
+        }
+        
+        singlePlayerGame.setStatus(GameStatus.COMPLETED);
+        singlePlayerGame.setEndedAt(LocalDateTime.now());
+        log.info("Single player game {} set to COMPLETED status", gameId);
+
+        SinglePlayerRoom singlePlayerRoom = singlePlayerGame.getSinglePlayerRoom();
+        if (singlePlayerRoom != null) {
+            singlePlayerRoom.setStatus(RoomStatus.GAME_COMPLETED);
+            singlePlayerRoomRepository.save(singlePlayerRoom);
+        }
+        gameTimerService.cancelGameTimers(gameId);
+        
+        singlePlayerGameRepository.save(singlePlayerGame);
+        
+        SinglePlayerGameDto singlePlayerGameDto = singlePlayerGameMapper.singlePlayerGameToSinglePlayerGameDto(singlePlayerGame);
+        
+        try {
+            messagingTemplate.convertAndSendToUser(
+                    singlePlayerRoom.getHost().getGameName(),
+                    "/queue/game-ended",
+                    singlePlayerGameDto
+            );
+            log.info("Successfully sent game-ended notification to host {} for single player game {}", 
+                    singlePlayerRoom.getHost().getGameName(), gameId);
+        } catch (Exception e) {
+            log.error("Failed to send game-ended notification to host {}: {}", 
+                    singlePlayerRoom.getHost().getGameName(), e.getMessage(), e);
+        }
+    }
+
     private void updateScore(Game game, User user) {
         if (game.getUsers().get(0).equals(user)) {
             game.setHostScore(game.getHostScore() + 1);
@@ -389,18 +556,17 @@ public class GameServiceImpl implements GameService {
             game.setGuestScore(game.getGuestScore() + 1);
         }
     }
-    
+
     private boolean shouldEndRound(Round round) {
         return round.getGuesses().size() >= 2;
     }
-    
+
     private void populateCurrentRoundData(GameDto dto, Game game) {
         if (!game.getRounds().isEmpty()) {
-            // Find the round with the highest round number (most recent round)
             Round currentRound = game.getRounds().stream()
                     .max((r1, r2) -> Integer.compare(r1.getRoundNumber(), r2.getRoundNumber()))
                     .orElse(game.getRounds().get(0));
-            
+
             dto.setCurrentRound(currentRound.getRoundNumber());
             
             com.flagfinder.dto.RoundDto roundDto = roundMapper.roundToRoundDto(currentRound);
@@ -408,6 +574,39 @@ public class GameServiceImpl implements GameService {
             roundDto.setTimeRemaining(gameTimerService.getRemainingTime(game.getId(), currentRound.getRoundNumber()));
             
             dto.setCurrentRoundData(roundDto);
+        }
+    }
+
+    private void populateCurrentSinglePlayerRoundData(SinglePlayerGameDto dto, SinglePlayerGame game) {
+        if (!game.getRounds().isEmpty()) {
+            SinglePlayerRound currentSinglePlayerRound = null;
+
+            for (SinglePlayerRound round : game.getRounds()) {
+                if (gameTimerService.isRoundActive(game.getId(), round.getRoundNumber())) {
+                    currentSinglePlayerRound = round;
+                    break;
+                }
+            }
+            
+            if (currentSinglePlayerRound == null) {
+                currentSinglePlayerRound = game.getRounds().stream()
+                        .max((r1, r2) -> Integer.compare(r1.getRoundNumber(), r2.getRoundNumber()))
+                        .orElse(game.getRounds().get(0));
+            }
+
+            dto.setCurrentRound(currentSinglePlayerRound.getRoundNumber());
+
+            SinglePlayerRoundDto roundDto = singlePlayerRoundMapper.singlePlayerRoundToSinglePlayerRoundDto(currentSinglePlayerRound);
+            boolean isRoundActive = gameTimerService.isRoundActive(game.getId(), currentSinglePlayerRound.getRoundNumber());
+            Long timeRemaining = gameTimerService.getRemainingTime(game.getId(), currentSinglePlayerRound.getRoundNumber());
+            
+            log.info("Single player round data - Game: {}, Round: {}, Active: {}, Time: {}", 
+                    game.getId(), currentSinglePlayerRound.getRoundNumber(), isRoundActive, timeRemaining);
+            
+            roundDto.setRoundActive(isRoundActive);
+            roundDto.setTimeRemaining(timeRemaining);
+
+            dto.setCurrentSinglePlayerRoundData(roundDto);
         }
     }
     
@@ -434,11 +633,22 @@ public class GameServiceImpl implements GameService {
     @Override
     @Transactional
     public List<RoundSummaryDto> getGameRoundSummaries(UUID gameId) {
-        gameRepository.findById(gameId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
-
-        List<Round> rounds = roundRepository.findByGameIdOrderByRoundNumber(gameId);
-
+        Optional<Game> multiplayerGame = gameRepository.findById(gameId);
+        if (multiplayerGame.isPresent()) {
+            List<Round> rounds = roundRepository.findByGameIdOrderByRoundNumber(gameId);
+            return mapMultiplayerRoundsToSummary(rounds);
+        }
+        
+        Optional<SinglePlayerGame> singlePlayerGame = singlePlayerGameRepository.findById(gameId);
+        if (singlePlayerGame.isPresent()) {
+            List<SinglePlayerRound> rounds = singlePlayerRoundRepository.findByGameIdOrderByRoundNumber(gameId);
+            return mapSinglePlayerRoundsToSummary(rounds);
+        }
+        
+        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found");
+    }
+    
+    private List<RoundSummaryDto> mapMultiplayerRoundsToSummary(List<Round> rounds) {
         return rounds.stream().map(round -> {
             RoundSummaryDto dto = new RoundSummaryDto();
             dto.setRoundNumber(round.getRoundNumber());
@@ -457,6 +667,32 @@ public class GameServiceImpl implements GameService {
                 }
                 return guessDto;
             }).collect(Collectors.toList());
+            
+            dto.setGuesses(guessDtos);
+            return dto;
+        }).collect(Collectors.toList());
+    }
+    
+    private List<RoundSummaryDto> mapSinglePlayerRoundsToSummary(List<SinglePlayerRound> rounds) {
+        return rounds.stream().map(round -> {
+            RoundSummaryDto dto = new RoundSummaryDto();
+            dto.setRoundNumber(round.getRoundNumber());
+
+            CountryDto countryDto = new CountryDto();
+            countryDto.setId(round.getCountry().getId());
+            countryDto.setNameOfCounty(round.getCountry().getNameOfCounty());
+            dto.setCountry(countryDto);
+
+            List<GuessDto> guessDtos = new ArrayList<>();
+            if (round.getGuess() != null) {
+                GuessDto guessDto = new GuessDto();
+                guessDto.setUserGameName(round.getGuess().getUser().getGameName());
+                guessDto.setCorrect(round.getGuess().isCorrect());
+                if (round.getGuess().getGuessedCountry() != null) {
+                    guessDto.setGuessedCountryName(round.getGuess().getGuessedCountry().getNameOfCounty());
+                }
+                guessDtos.add(guessDto);
+            }
             
             dto.setGuesses(guessDtos);
             return dto;
@@ -482,7 +718,7 @@ public class GameServiceImpl implements GameService {
         long correctGuesses = rounds.stream()
                 .map(round -> new AbstractMap.SimpleEntry<>(round,
                         guessRepository.findOneByRoundIdAndGameName(round.getId(), userName)))
-                .filter(entry -> entry.getValue() != null) // ignore rounds without a guess
+                .filter(entry -> entry.getValue() != null)
                 .filter(entry -> entry.getValue().getGuessedCountry().equals(entry.getKey().getCountry()))
                 .count();
 
@@ -491,5 +727,92 @@ public class GameServiceImpl implements GameService {
         return totalGuesses > 0
                     ? (int) ((correctGuesses * 100.0) / totalGuesses)
                     : 0;
+    }
+
+    private GuessResponseDto submitSinglePlayerGuess(GuessRequestDto guessRequest, SinglePlayerGame singlePlayerGame) {
+        String currentUserName = SecurityContextHolder.getContext().getAuthentication().getName();
+        User currentUser = userRepository.findByEmail(currentUserName)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+        
+        SinglePlayerRound currentRound = singlePlayerGame.getRounds().stream()
+                .filter(round -> round.getRoundNumber().equals(guessRequest.getRoundNumber()))
+                .findFirst()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Round not found"));
+        
+        if (currentRound.getGuess() != null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Already guessed in this round");
         }
+        
+        Country guessedCountry = countryRepository.findByNameOfCountyIgnoreCase(guessRequest.getGuessedCountryName())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid country name: " + guessRequest.getGuessedCountryName()));
+        
+        Guess guess = new Guess();
+        guess.setUser(currentUser);
+        guess.setGuessedCountry(guessedCountry);
+        guess.setSinglePlayerRound(currentRound);
+        
+        boolean isCorrect = guessedCountry.equals(currentRound.getCountry());
+        guess.setCorrect(isCorrect);
+        
+        guessRepository.save(guess);
+        currentRound.setGuess(guess);
+        singlePlayerRoundRepository.save(currentRound);
+        
+        if (isCorrect) {
+            singlePlayerGame.setHostScore(singlePlayerGame.getHostScore() + 1);
+        }
+        
+        singlePlayerGameRepository.save(singlePlayerGame);
+        
+        SinglePlayerGame refreshedGame = singlePlayerGameRepository.findByIdWithRelations(singlePlayerGame.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
+        
+        SinglePlayerGameDto gameDto = singlePlayerGameMapper.singlePlayerGameToSinglePlayerGameDto(refreshedGame);
+        populateCurrentSinglePlayerRoundData(gameDto, refreshedGame);
+        
+        GuessResponseDto response = new GuessResponseDto();
+        response.setCorrect(isCorrect);
+        response.setMessage(isCorrect ? "Correct!" : "Incorrect. The correct answer was " + currentRound.getCountry().getNameOfCounty());
+        response.setPointsAwarded(isCorrect ? 1 : 0);
+        response.setGame(gameDto);
+        
+        return response;
+    }
+
+    @Override
+    public SinglePlayerGameDto getSinglePlayerGameByRoom(UUID roomId) {
+        SinglePlayerRoom singlePlayerRoom = singlePlayerRoomRepository.findById(roomId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Single player room not found"));
+        
+        SinglePlayerGame singlePlayerGame = singlePlayerGameRepository.findBySinglePlayerRoom(singlePlayerRoom)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Single player game not found for room"));
+        
+        Hibernate.initialize(singlePlayerGame.getUser());
+        Hibernate.initialize(singlePlayerGame.getRounds());
+        if (singlePlayerGame.getSinglePlayerRoom() != null) {
+            Hibernate.initialize(singlePlayerGame.getSinglePlayerRoom());
+        }
+        
+        SinglePlayerGameDto singlePlayerGameDto = singlePlayerGameMapper.singlePlayerGameToSinglePlayerGameDto(singlePlayerGame);
+        populateCurrentSinglePlayerRoundData(singlePlayerGameDto, singlePlayerGame);
+        
+        return singlePlayerGameDto;
+    }
+
+    @Override
+    public SinglePlayerGameDto getSinglePlayerGameById(UUID gameId) {
+        SinglePlayerGame singlePlayerGame = singlePlayerGameRepository.findByIdWithRelations(gameId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Single player game not found"));
+        
+        Hibernate.initialize(singlePlayerGame.getUser());
+        Hibernate.initialize(singlePlayerGame.getRounds());
+        if (singlePlayerGame.getSinglePlayerRoom() != null) {
+            Hibernate.initialize(singlePlayerGame.getSinglePlayerRoom());
+        }
+        
+        SinglePlayerGameDto singlePlayerGameDto = singlePlayerGameMapper.singlePlayerGameToSinglePlayerGameDto(singlePlayerGame);
+        populateCurrentSinglePlayerRoundData(singlePlayerGameDto, singlePlayerGame);
+        
+        return singlePlayerGameDto;
+    }
 }

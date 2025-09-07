@@ -7,14 +7,20 @@ import com.flagfinder.dto.RestCountryDto;
 import com.flagfinder.enumeration.Continent;
 import com.flagfinder.model.Country;
 import com.flagfinder.repository.CountryRepository;
+import com.flagfinder.repository.GuessRepository;
+import com.flagfinder.repository.RoundRepository;
+import com.flagfinder.repository.SinglePlayerRoundRepository;
 import com.flagfinder.service.CountryService;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -33,6 +39,9 @@ public class CountryServiceImpl implements CountryService {
 
     private final CountryRepository countryRepository;
     private final RestTemplate restTemplate = new RestTemplate();
+    private final GuessRepository guessRepository;
+    private final RoundRepository roundRepository;
+    private final SinglePlayerRoundRepository singlePlayerRoundRepository;
 
     @Override
     public Country createCountryFromImageUrl(CountryCreateDto countryCreateDto) {
@@ -59,6 +68,21 @@ public class CountryServiceImpl implements CountryService {
     }
 
     @Override
+    @Transactional
+    public void deleteCountryByName(String countryName) {
+        Country country = countryRepository.findByNameOfCountyIgnoreCase(countryName)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Country not found"));
+
+        guessRepository.deleteByGuessedCountry(country);
+
+        roundRepository.deleteByCountry(country);
+
+        singlePlayerRoundRepository.deleteByCountry(country);
+
+        countryRepository.delete(country);
+    }
+
+    @Override
     public List<Country> getAllCountries() {
         return countryRepository.findAll();
     }
@@ -67,11 +91,6 @@ public class CountryServiceImpl implements CountryService {
     public Country getCountryById(UUID id) {
         return countryRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Country not found with ID: " + id));
-    }
-
-    @Override
-    public void deleteCountry(UUID id) {
-        countryRepository.deleteById(id);
     }
 
     @Override

@@ -1,9 +1,6 @@
 package com.flagfinder.controller;
 
-import com.flagfinder.dto.InviteFriendRequestDto;
-import com.flagfinder.dto.InviteSentDto;
-import com.flagfinder.dto.JoinRoomRequestDto;
-import com.flagfinder.dto.RoomDto;
+import com.flagfinder.dto.*;
 import com.flagfinder.service.RoomService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +23,15 @@ public class RoomController {
     public ResponseEntity<RoomDto> createRoom() {
         RoomDto roomDto = roomService.createRoom();
         return ResponseEntity.status(HttpStatus.CREATED).body(roomDto);
+    }
+
+    /**
+     * Creates a new room
+     */
+    @PostMapping("/create-single-player-room")
+    public ResponseEntity<SinglePlayerRoomDto> createSinglePlayerRoom() {
+        SinglePlayerRoomDto singlePlayerRoomDto = roomService.createSinglePlayerRoom();
+        return ResponseEntity.status(HttpStatus.CREATED).body(singlePlayerRoomDto);
     }
 
     
