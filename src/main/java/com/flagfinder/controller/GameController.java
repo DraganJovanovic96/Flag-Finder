@@ -4,7 +4,9 @@ import com.flagfinder.dto.*;
 import com.flagfinder.model.Game;
 import com.flagfinder.service.GameService;
 import com.flagfinder.service.impl.HelperMethods;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -142,6 +144,45 @@ public class GameController {
         List<CompletedGameDto> games = gameService.getGamesByUser();
 
         return ResponseEntity.ok(games);
+    }
+    
+    /**
+     * Retrieves paginated games for a specific user and returns a ResponseEntity object with status code 200 (OK)
+     * and the paginated Game objects in the response body.
+     *
+     * @param page the page number (0-based)
+     * @param pageSize the number of items per page
+     * @return a ResponseEntity object with status code 200 (OK) and the paginated Game objects in the response body
+     */
+    @GetMapping("/user/game-history/paginated")
+    public ResponseEntity<Page<CompletedGameDto>> getGamesByUserPaginated(
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "pageSize", defaultValue = "5") @Min(1) int pageSize) {
+        Page<CompletedGameDto> games = gameService.getGamesByUser(page, pageSize);
+
+        return ResponseEntity.ok(games);
+    }
+    
+    /**
+     * Retrieves count of won games for the authenticated user.
+     *
+     * @return a ResponseEntity object with status code 200 (OK) and the count of won games
+     */
+    @GetMapping("/user/won-games-count")
+    public ResponseEntity<Long> getWonGamesCount() {
+        Long wonGamesCount = gameService.getWonGamesCount();
+        return ResponseEntity.ok(wonGamesCount);
+    }
+    
+    /**
+     * Retrieves count of draw games for the authenticated user.
+     *
+     * @return a ResponseEntity object with status code 200 (OK) and the count of draw games
+     */
+    @GetMapping("/user/draw-games-count")
+    public ResponseEntity<Long> getDrawGamesCount() {
+        Long drawGamesCount = gameService.getDrawGamesCount();
+        return ResponseEntity.ok(drawGamesCount);
     }
     
     /**

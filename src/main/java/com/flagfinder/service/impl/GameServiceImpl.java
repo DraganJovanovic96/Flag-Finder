@@ -18,6 +18,8 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.Hibernate;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -76,6 +78,31 @@ public class GameServiceImpl implements GameService {
         return gameRepository.findAllMultiplayerByUser(userName).stream()
                 .map(gameMapper::gameToCompletedGameDto)
                 .toList();
+    }
+    
+    @Override
+    public Page<CompletedGameDto> getGamesByUser(Integer page, Integer pageSize) {
+        String userName = userService.getUserFromAuthentication().getGameName();
+        Page<Game> resultPage = gameRepository.findAllMultiplayerByUser(userName, PageRequest.of(page, pageSize));
+        List<Game> games = resultPage.getContent();
+        
+        List<CompletedGameDto> completedGameDtos = games.stream()
+                .map(gameMapper::gameToCompletedGameDto)
+                .toList();
+        
+        return new PageImpl<>(completedGameDtos, resultPage.getPageable(), resultPage.getTotalElements());
+    }
+    
+    @Override
+    public Long getWonGamesCount() {
+        String userName = userService.getUserFromAuthentication().getGameName();
+        return gameRepository.countWonGamesByUser(userName);
+    }
+    
+    @Override
+    public Long getDrawGamesCount() {
+        String userName = userService.getUserFromAuthentication().getGameName();
+        return gameRepository.countDrawGamesByUser(userName);
     }
     
     @Override

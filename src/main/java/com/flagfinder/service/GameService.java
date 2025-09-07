@@ -3,6 +3,7 @@ package com.flagfinder.service;
 import com.flagfinder.dto.*;
 import com.flagfinder.model.Game;
 import com.flagfinder.model.Round;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.util.List;
@@ -18,6 +19,21 @@ public interface GameService {
      * Gets all games for a user
      */
     List<CompletedGameDto> getGamesByUser();
+    
+    /**
+     * Gets all games for a user with pagination
+     */
+    Page<CompletedGameDto> getGamesByUser(Integer page, Integer pageSize);
+    
+    /**
+     * Gets count of won games for authenticated user
+     */
+    Long getWonGamesCount();
+    
+    /**
+     * Gets count of draw games for authenticated user
+     */
+    Long getDrawGamesCount();
     
     /**
      * Gets all completed games
