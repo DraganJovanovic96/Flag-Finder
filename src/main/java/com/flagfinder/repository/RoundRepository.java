@@ -23,4 +23,6 @@ public interface RoundRepository extends JpaRepository<Round, UUID> {
     List<Round> findByGameIdOrderByRoundNumber(@Param("gameId") UUID gameId);
 
     void deleteByCountry(Country country);
+    
+    List<Round> findByCountry(Country country);
 }

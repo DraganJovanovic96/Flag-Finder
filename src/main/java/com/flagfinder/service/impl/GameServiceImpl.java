@@ -53,10 +53,15 @@ public class GameServiceImpl implements GameService {
     private final RoundMapper roundMapper;
     private final SinglePlayerRoundMapper singlePlayerRoundMapper;
     private final SimpMessagingTemplate messagingTemplate;
-    
+
     private static final int TOTAL_ROUNDS = 3;
-    private static final int ROUND_DURATION_SECONDS = 8;
+    private static final int ROUND_DURATION_SECONDS = 12;
     private static final int TOTAL_RECENT_GAMES = 10;
+    private static final String QUEUE_ROUND_STARTED = "/queue/round-started";
+    private static final String QUEUE_GAME_STARTED = "/queue/game-started";
+    private static final String QUEUE_GAME_ENDED = "/queue/game-ended";
+    private static final String GAME_NOT_FOUND = "Game not found";
+
     
     @Override
     public Game getGame(UUID gameId) {
@@ -119,13 +124,12 @@ public class GameServiceImpl implements GameService {
 
         GameDto gameDto = gameMapper.gameToGameDto(savedGame);
 
-        System.out.println(gameDto.getTotalRounds());
         populateCurrentRoundData(gameDto, savedGame);
         
         try {
             messagingTemplate.convertAndSendToUser(
                     room.getHost().getGameName(),
-                    "/queue/game-started",
+                    QUEUE_GAME_STARTED,
                     gameDto
             );
         } catch (Exception e) {
@@ -135,7 +139,7 @@ public class GameServiceImpl implements GameService {
         try {
             messagingTemplate.convertAndSendToUser(
                     room.getGuest().getGameName(),
-                    "/queue/game-started",
+                    QUEUE_GAME_STARTED,
                     gameDto
             );
         } catch (Exception e) {
@@ -182,7 +186,7 @@ public class GameServiceImpl implements GameService {
         try {
             messagingTemplate.convertAndSendToUser(
                     singlePlayerRoom.getHost().getGameName(),
-                    "/queue/game-started",
+                    QUEUE_GAME_STARTED,
                     singlePlayerGameDto
             );
         } catch (Exception e) {
@@ -206,7 +210,7 @@ public class GameServiceImpl implements GameService {
         
         if (game == null) {
             singlePlayerGame = singlePlayerGameRepository.findByIdWithRelations(guessRequest.getGameId())
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, GAME_NOT_FOUND));
             
             if (singlePlayerGame.getStatus() != GameStatus.IN_PROGRESS) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Game is not in progress");
@@ -286,7 +290,7 @@ public class GameServiceImpl implements GameService {
     @Transactional
     public GameDto getGameState(UUID gameId) {
         Game game = gameRepository.findByIdWithRelations(gameId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, GAME_NOT_FOUND));
         
         Hibernate.initialize(game.getUsers());
         Hibernate.initialize(game.getRounds());
@@ -303,7 +307,7 @@ public class GameServiceImpl implements GameService {
     @Transactional
     public GameDto endGame(UUID gameId) {
         Game game = gameRepository.findByIdWithRelations(gameId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, GAME_NOT_FOUND));
         
         Hibernate.initialize(game.getUsers());
         Hibernate.initialize(game.getRounds());
@@ -334,7 +338,7 @@ public class GameServiceImpl implements GameService {
         try {
             messagingTemplate.convertAndSendToUser(
                     room.getHost().getGameName(),
-                    "/queue/game-ended",
+                    QUEUE_GAME_ENDED,
                     gameDto
             );
         } catch (Exception e) {
@@ -344,7 +348,7 @@ public class GameServiceImpl implements GameService {
         try {
             messagingTemplate.convertAndSendToUser(
                     room.getGuest().getGameName(),
-                    "/queue/game-ended",
+                    QUEUE_GAME_ENDED,
                     gameDto
             );
         } catch (Exception e) {
@@ -376,7 +380,7 @@ public class GameServiceImpl implements GameService {
         gameTimerService.startRoundTimer(game.getId(), roundNumber, ROUND_DURATION_SECONDS);
         
         Game refreshedGame = gameRepository.findByIdWithRelations(game.getId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, GAME_NOT_FOUND));
         
         Hibernate.initialize(refreshedGame.getUsers());
         Hibernate.initialize(refreshedGame.getRounds());
@@ -393,7 +397,7 @@ public class GameServiceImpl implements GameService {
         try {
             messagingTemplate.convertAndSendToUser(
                     room.getHost().getGameName(),
-                    "/queue/round-started",
+                    QUEUE_ROUND_STARTED,
                     gameDto
             );
             log.info("Successfully sent round-started notification to host {} for round {}", room.getHost().getGameName(), roundNumber);
@@ -404,7 +408,7 @@ public class GameServiceImpl implements GameService {
         try {
             messagingTemplate.convertAndSendToUser(
                     room.getGuest().getGameName(),
-                    "/queue/round-started",
+                    QUEUE_ROUND_STARTED,
                     gameDto
             );
             log.info("Successfully sent round-started notification to guest {} for round {}", room.getGuest().getGameName(), roundNumber);
@@ -432,7 +436,7 @@ public class GameServiceImpl implements GameService {
         gameTimerService.startRoundTimer(singlePlayerGame.getId(), roundNumber, ROUND_DURATION_SECONDS);
 
         SinglePlayerGame refreshedGame = singlePlayerGameRepository.findByIdWithRelations(singlePlayerGame.getId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, GAME_NOT_FOUND));
 
         Hibernate.initialize(refreshedGame.getUser());
         Hibernate.initialize(refreshedGame.getRounds());
@@ -447,7 +451,7 @@ public class GameServiceImpl implements GameService {
         try {
             messagingTemplate.convertAndSendToUser(
                     singlePlayerRoom.getHost().getGameName(),
-                    "/queue/round-started",
+                    QUEUE_ROUND_STARTED,
                     singlePlayerGameDto
             );
         } catch (Exception e) {
@@ -538,7 +542,7 @@ public class GameServiceImpl implements GameService {
         try {
             messagingTemplate.convertAndSendToUser(
                     singlePlayerRoom.getHost().getGameName(),
-                    "/queue/game-ended",
+                    QUEUE_GAME_ENDED,
                     singlePlayerGameDto
             );
             log.info("Successfully sent game-ended notification to host {} for single player game {}", 
@@ -600,9 +604,6 @@ public class GameServiceImpl implements GameService {
             boolean isRoundActive = gameTimerService.isRoundActive(game.getId(), currentSinglePlayerRound.getRoundNumber());
             Long timeRemaining = gameTimerService.getRemainingTime(game.getId(), currentSinglePlayerRound.getRoundNumber());
             
-            log.info("Single player round data - Game: {}, Round: {}, Active: {}, Time: {}", 
-                    game.getId(), currentSinglePlayerRound.getRoundNumber(), isRoundActive, timeRemaining);
-            
             roundDto.setRoundActive(isRoundActive);
             roundDto.setTimeRemaining(timeRemaining);
 
@@ -614,7 +615,7 @@ public class GameServiceImpl implements GameService {
     @Transactional
     public List<Round> getGameRounds(UUID gameId) {
         gameRepository.findById(gameId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, GAME_NOT_FOUND));
 
         List<Round> rounds = roundRepository.findByGameIdOrderByRoundNumber(gameId);
 
@@ -645,7 +646,7 @@ public class GameServiceImpl implements GameService {
             return mapSinglePlayerRoundsToSummary(rounds);
         }
         
-        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found");
+        throw new ResponseStatusException(HttpStatus.NOT_FOUND, GAME_NOT_FOUND);
     }
     
     private List<RoundSummaryDto> mapMultiplayerRoundsToSummary(List<Round> rounds) {
@@ -666,11 +667,11 @@ public class GameServiceImpl implements GameService {
                     guessDto.setGuessedCountryName(guess.getGuessedCountry().getNameOfCounty());
                 }
                 return guessDto;
-            }).collect(Collectors.toList());
+            }).toList();
             
             dto.setGuesses(guessDtos);
             return dto;
-        }).collect(Collectors.toList());
+        }).toList();
     }
     
     private List<RoundSummaryDto> mapSinglePlayerRoundsToSummary(List<SinglePlayerRound> rounds) {
@@ -696,7 +697,7 @@ public class GameServiceImpl implements GameService {
             
             dto.setGuesses(guessDtos);
             return dto;
-        }).collect(Collectors.toList());
+        }).toList();
     }
 
     @Override
@@ -765,7 +766,7 @@ public class GameServiceImpl implements GameService {
         singlePlayerGameRepository.save(singlePlayerGame);
         
         SinglePlayerGame refreshedGame = singlePlayerGameRepository.findByIdWithRelations(singlePlayerGame.getId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, GAME_NOT_FOUND));
         
         SinglePlayerGameDto gameDto = singlePlayerGameMapper.singlePlayerGameToSinglePlayerGameDto(refreshedGame);
         populateCurrentSinglePlayerRoundData(gameDto, refreshedGame);

@@ -24,4 +24,6 @@ public interface SinglePlayerRoundRepository extends JpaRepository<SinglePlayerR
     List<SinglePlayerRound> findByGameIdOrderByRoundNumber(@Param("singlePlayerGameId") UUID singlePlayerGameId);
 
     void deleteByCountry(Country country);
+    
+    List<SinglePlayerRound> findByCountry(Country country);
 }
