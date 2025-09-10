@@ -55,6 +55,7 @@ public class GameServiceImpl implements GameService {
     private final RoundMapper roundMapper;
     private final SinglePlayerRoundMapper singlePlayerRoundMapper;
     private final SimpMessagingTemplate messagingTemplate;
+    private final org.springframework.transaction.support.TransactionTemplate transactionTemplate;
 
     private static final int TOTAL_ROUNDS = 3;
     private static final int ROUND_DURATION_SECONDS = 12;
@@ -294,7 +295,7 @@ public class GameServiceImpl implements GameService {
         } else {
             log.info("Round {} continues - only {} guesses so far", currentRound.getRoundNumber(), currentRound.getGuesses().size());
         }
-        
+
         GameDto gameDto = gameMapper.gameToGameDto(gameRepository.save(game));
         populateCurrentRoundData(gameDto, game);
 
@@ -589,7 +590,7 @@ public class GameServiceImpl implements GameService {
     }
 
     private boolean shouldEndRound(Round round) {
-        return round.getGuesses().size() >= 2;
+        return round.getGuesses().size() >= TOTAL_ROUNDS;
     }
 
     private void populateCurrentRoundData(GameDto dto, Game game) {
@@ -761,7 +762,6 @@ public class GameServiceImpl implements GameService {
         String currentUserName = SecurityContextHolder.getContext().getAuthentication().getName();
         User currentUser = userRepository.findByEmail(currentUserName)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
-        
         SinglePlayerRound currentRound = singlePlayerGame.getRounds().stream()
                 .filter(round -> round.getRoundNumber().equals(guessRequest.getRoundNumber()))
                 .findFirst()
@@ -770,18 +770,17 @@ public class GameServiceImpl implements GameService {
         if (currentRound.getGuess() != null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Already guessed in this round");
         }
-        
         Country guessedCountry = countryRepository.findByNameOfCountyIgnoreCase(guessRequest.getGuessedCountryName())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid country name: " + guessRequest.getGuessedCountryName()));
-        
+
         Guess guess = new Guess();
         guess.setUser(currentUser);
         guess.setGuessedCountry(guessedCountry);
         guess.setSinglePlayerRound(currentRound);
-        
+
         boolean isCorrect = guessedCountry.equals(currentRound.getCountry());
         guess.setCorrect(isCorrect);
-        
+
         guessRepository.save(guess);
         currentRound.setGuess(guess);
         singlePlayerRoundRepository.save(currentRound);
@@ -789,21 +788,49 @@ public class GameServiceImpl implements GameService {
         if (isCorrect) {
             singlePlayerGame.setHostScore(singlePlayerGame.getHostScore() + 1);
         }
-        
+
+        int currentRoundNumber = guessRequest.getRoundNumber();
+        UUID gameId = singlePlayerGame.getId();
+        List<Continent> continents = new ArrayList<>(singlePlayerGame.getContinents());
+
+        java.util.concurrent.Executors.newSingleThreadScheduledExecutor().schedule(() -> {
+            transactionTemplate.execute(status -> {
+                try {
+                    if (currentRoundNumber < TOTAL_ROUNDS) {
+                        SinglePlayerGame game = singlePlayerGameRepository.findByIdWithRelations(gameId)
+                                .orElse(null);
+                        if (game != null && game.getStatus() == GameStatus.IN_PROGRESS) {
+                            startNewSinglePlayerRound(game, currentRoundNumber + 1, continents);
+                        }
+                    } else {
+                        SinglePlayerGame game = singlePlayerGameRepository.findById(gameId).orElse(null);
+                        if (game != null) {
+                            game.setStatus(GameStatus.COMPLETED);
+                            game.setEndedAt(LocalDateTime.now());
+                            singlePlayerGameRepository.save(game);
+                        }
+                    }
+                } catch (Exception e) {
+                    log.error("Error in delayed single player game progression for game {}", gameId, e);
+                }
+                return null;
+            });
+        }, 1, java.util.concurrent.TimeUnit.SECONDS);
+
         singlePlayerGameRepository.save(singlePlayerGame);
         
         SinglePlayerGame refreshedGame = singlePlayerGameRepository.findByIdWithRelations(singlePlayerGame.getId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, GAME_NOT_FOUND));
-        
+
         SinglePlayerGameDto gameDto = singlePlayerGameMapper.singlePlayerGameToSinglePlayerGameDto(refreshedGame);
         populateCurrentSinglePlayerRoundData(gameDto, refreshedGame);
-        
+
         GuessResponseDto response = new GuessResponseDto();
         response.setCorrect(isCorrect);
         response.setMessage(isCorrect ? "Correct!" : "Incorrect. The correct answer was " + currentRound.getCountry().getNameOfCounty());
         response.setPointsAwarded(isCorrect ? 1 : 0);
         response.setGame(gameDto);
-        
+
         return response;
     }
 
