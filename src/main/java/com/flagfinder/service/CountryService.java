@@ -20,7 +20,9 @@ public interface CountryService {
      * @throws RuntimeException if creation fails
      */
     Country createCountryFromImageUrl(CountryCreateDto countryCreateDto);
-    
+
+    public void deleteCountryByName(String countryName);
+
     /**
      * Gets all countries
      * 
@@ -56,13 +58,6 @@ public interface CountryService {
     Country getCountryById(UUID id);
     
     /**
-     * Deletes a country by ID
-     * 
-     * @param id the country ID
-     */
-    void deleteCountry(UUID id);
-    
-    /**
      * Searches countries by name prefix (case-insensitive)
      * 
      * @param prefix the prefix to search for
@@ -79,6 +74,14 @@ public interface CountryService {
      * @throws RuntimeException if loading fails
      */
     String loadCountriesFromRestApi();
+
+    /**
+     * Loads countries from REST Countries API and saves them to database
+     *
+     * @return success message
+     * @throws RuntimeException if loading fails
+     */
+    String loadUsStatesFromRestApi();
     
     /**
      * Gets a country's flag image with content type detection

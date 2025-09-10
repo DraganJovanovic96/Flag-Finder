@@ -4,7 +4,7 @@ import lombok.Data;
 
 @Data
 public class GuessResponseDto {
-    private GameDto game;
+    private Object game;
     private boolean correct;
     private String message;
     private Integer pointsAwarded;

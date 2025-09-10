@@ -109,6 +109,12 @@ public class User extends BaseEntity implements UserDetails {
     private LocalDateTime verificationExpiration;
 
     /**
+     * Google OAuth2 ID for users who sign in with Google.
+     */
+    @Column(name = "google_id")
+    private String googleId;
+
+    /**
      * The user's password reset code.
      */
     @Column(name = "password_code")

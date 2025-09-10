@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Data
-public class RoundDto {
+public class SinglePlayerRoundDto {
     private UUID id;
     private Integer roundNumber;
     private String countryName;
@@ -14,5 +14,5 @@ public class RoundDto {
     private byte[] flagImage;
     private Long timeRemaining;
     private boolean roundActive;
-    private List<GuessDto> guesses;
+    private GuessDto guess;
 }

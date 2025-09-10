@@ -3,6 +3,7 @@ package com.flagfinder.repository;
 import com.flagfinder.enumeration.GameStatus;
 import com.flagfinder.model.Game;
 import com.flagfinder.model.Room;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -16,7 +17,7 @@ import java.util.UUID;
 @Repository
 public interface GameRepository extends JpaRepository <Game, UUID> {
     Game findByRoomAndStatus(Room room, GameStatus status);
-    
+
     @Query("SELECT DISTINCT g FROM Game g " +
            "LEFT JOIN FETCH g.room " +
            "LEFT JOIN FETCH g.users " +
@@ -32,4 +33,40 @@ public interface GameRepository extends JpaRepository <Game, UUID> {
     ORDER BY g.createdAt DESC
     """)
     List<Game> findRecentGamesByUser(@Param("userName") String userName, Pageable pageable);
+
+    @Query("""
+SELECT DISTINCT g FROM Game g
+JOIN g.users u
+WHERE LOWER(u.gameName) = LOWER(:userName)
+AND SIZE(g.users) > 1
+ORDER BY g.createdAt DESC
+""")
+    List<Game> findAllMultiplayerByUser(@Param("userName") String userName);
+
+    @Query("""
+SELECT DISTINCT g FROM Game g
+JOIN g.users u
+WHERE LOWER(u.gameName) = LOWER(:userName)
+AND SIZE(g.users) > 1
+ORDER BY g.createdAt DESC
+""")
+    Page<Game> findAllMultiplayerByUser(@Param("userName") String userName, Pageable pageable);
+
+    @Query("""
+SELECT COUNT(DISTINCT g) FROM Game g
+JOIN g.users u
+WHERE LOWER(u.gameName) = LOWER(:userName)
+AND SIZE(g.users) > 1
+AND LOWER(g.winnerUserName) = LOWER(:userName)
+""")
+    Long countWonGamesByUser(@Param("userName") String userName);
+
+    @Query("""
+SELECT COUNT(DISTINCT g) FROM Game g
+JOIN g.users u
+WHERE LOWER(u.gameName) = LOWER(:userName)
+AND SIZE(g.users) > 1
+AND g.winnerUserName IS NULL
+""")
+    Long countDrawGamesByUser(@Param("userName") String userName);
 }

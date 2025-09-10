@@ -1,11 +1,9 @@
 package com.flagfinder.service;
 
-import com.flagfinder.dto.GameDto;
-import com.flagfinder.dto.GuessRequestDto;
-import com.flagfinder.dto.GuessResponseDto;
-import com.flagfinder.dto.RoundSummaryDto;
+import com.flagfinder.dto.*;
 import com.flagfinder.model.Game;
 import com.flagfinder.model.Round;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.util.List;
@@ -20,7 +18,22 @@ public interface GameService {
     /**
      * Gets all games for a user
      */
-    List<Game> getGamesByUser(String userName);
+    List<CompletedGameDto> getGamesByUser();
+    
+    /**
+     * Gets all games for a user with pagination
+     */
+    Page<CompletedGameDto> getGamesByUser(Integer page, Integer pageSize);
+    
+    /**
+     * Gets count of won games for authenticated user
+     */
+    Long getWonGamesCount();
+    
+    /**
+     * Gets count of draw games for authenticated user
+     */
+    Long getDrawGamesCount();
     
     /**
      * Gets all completed games
@@ -31,6 +44,8 @@ public interface GameService {
      * Starts a new game from a room with 2 players
      */
     GameDto startGame(UUID roomId, java.util.List<com.flagfinder.enumeration.Continent> continents);
+
+    SinglePlayerGameDto startSinglePlayerGame(UUID roomId, java.util.List<com.flagfinder.enumeration.Continent> continents);
     
     /**
      * Submits a guess for the current round
@@ -60,4 +75,14 @@ public interface GameService {
     Long countOfWinningGames(String userName);
 
     int accuracyPercentage (String userName);
+
+    /**
+     * Gets single player game by room ID
+     */
+    SinglePlayerGameDto getSinglePlayerGameByRoom(UUID roomId);
+
+    /**
+     * Gets single player game by game ID
+     */
+    SinglePlayerGameDto getSinglePlayerGameById(UUID gameId);
 }

@@ -6,26 +6,20 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.RequiredArgsConstructor;
 
-import java.util.ArrayList;
-import java.util.List;
-
 @Data
 @Entity
-@Table(name = "rooms")
+@Table(name = "single_player_rooms")
 @RequiredArgsConstructor
-@EqualsAndHashCode(exclude = {"host", "guest", "game"}, callSuper = false)
-public class Room extends BaseEntity {
+@EqualsAndHashCode(exclude = {"host", "singlePlayerGame"}, callSuper = false)
+public class SinglePlayerRoom extends BaseEntity {
     @ManyToOne
     @JoinColumn(name = "host_id")
     private User host;
-    
-    @ManyToOne
-    @JoinColumn(name = "guest_id")
-    private User guest;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "room_status")
     private RoomStatus status;
     
-    @OneToOne(mappedBy = "room")
-    private Game game;
+    @OneToOne(mappedBy = "singlePlayerRoom")
+    private SinglePlayerGame singlePlayerGame;
 }

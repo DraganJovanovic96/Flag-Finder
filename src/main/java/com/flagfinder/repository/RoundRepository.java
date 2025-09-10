@@ -1,5 +1,6 @@
 package com.flagfinder.repository;
 
+import com.flagfinder.model.Country;
 import com.flagfinder.model.Round;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -20,4 +21,8 @@ public interface RoundRepository extends JpaRepository<Round, UUID> {
     
     @Query("SELECT r FROM Round r WHERE r.game.id = :gameId ORDER BY r.roundNumber ASC")
     List<Round> findByGameIdOrderByRoundNumber(@Param("gameId") UUID gameId);
+
+    void deleteByCountry(Country country);
+    
+    List<Round> findByCountry(Country country);
 }

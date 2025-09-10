@@ -35,8 +35,9 @@ public interface CountryRepository extends JpaRepository<Country, UUID> {
     )
     Country findRandomCountry();
 
-    @Query("SELECT c FROM Country c WHERE LOWER(c.nameOfCounty) LIKE LOWER(CONCAT(:prefix, '%')) ORDER BY c.nameOfCounty")
-    List<Country> findByNameOfCountyStartingWithIgnoreCase(@Param("prefix") String prefix);
+    @Query("SELECT c FROM Country c WHERE LOWER(c.nameOfCounty) LIKE LOWER(CONCAT('%', :keyword, '%')) ORDER BY c.nameOfCounty")
+    List<Country> findByNameOfCountyContainingIgnoreCase(@Param("keyword") String keyword);
+
     
     @Query(
             value = "SELECT DISTINCT c.* " +

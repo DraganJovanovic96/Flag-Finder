@@ -3,6 +3,7 @@ package com.flagfinder.dto;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -13,7 +14,8 @@ public class CompletedGameDto {
     private String winnerUserName;
     private Integer hostScore;
     private Integer guestScore;
-    private Integer totalRounds;
+    private List<RoundDto> roundDtos;
     private LocalDateTime startedAt;
+    private Integer totalRounds;
     private LocalDateTime endedAt;
 }

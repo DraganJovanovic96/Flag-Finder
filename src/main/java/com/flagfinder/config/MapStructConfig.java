@@ -65,4 +65,36 @@ public class MapStructConfig {
     public com.flagfinder.mapper.RoundMapper roundMapper() {
         return Mappers.getMapper(com.flagfinder.mapper.RoundMapper.class);
     }
+
+    /**
+     * This method creates a bean of guessMapper, so it can be used by IoC.
+     */
+    @Bean
+    public com.flagfinder.mapper.GuessMapper guessMapper() {
+        return Mappers.getMapper(com.flagfinder.mapper.GuessMapper.class);
+    }
+
+    /**
+     * This method creates a bean of singlePlayerRoomMapper, so it can be used by IoC.
+     */
+    @Bean
+    public com.flagfinder.mapper.SinglePlayerRoomMapper singlePlayerRoomMapper() {
+        return Mappers.getMapper(com.flagfinder.mapper.SinglePlayerRoomMapper.class);
+    }
+
+    /**
+     * This method creates a bean of singlePlayerGameMapper, so it can be used by IoC.
+     */
+    @Bean
+    public com.flagfinder.mapper.SinglePlayerGameMapper singlePlayerGameMapper() {
+        return Mappers.getMapper(com.flagfinder.mapper.SinglePlayerGameMapper.class);
+    }
+
+    /**
+     * This method creates a bean of singlePlayerRoundMapper, so it can be used by IoC.
+     */
+    @Bean
+    public com.flagfinder.mapper.SinglePlayerRoundMapper singlePlayerRoundMapper() {
+        return Mappers.getMapper(com.flagfinder.mapper.SinglePlayerRoundMapper.class);
+    }
 }

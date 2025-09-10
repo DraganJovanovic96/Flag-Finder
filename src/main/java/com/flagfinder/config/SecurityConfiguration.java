@@ -10,6 +10,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.logout.LogoutHandler;
@@ -17,6 +18,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.net.URLEncoder;
 import java.util.List;
 
 import static com.flagfinder.enumeration.Permission.*;
@@ -78,6 +80,8 @@ public class SecurityConfiguration {
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(
                                 "/api/v1/auth/**",
+                                "/api/v1/oauth2/**",
+                                "/oauth2/**",
                                 "/api/v1/ping",
                                 "/api/v1/countries/*/flag",
                                 "/error",
@@ -112,6 +116,47 @@ public class SecurityConfiguration {
                 )
                 .sessionManagement(sessionManagement -> sessionManagement
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
+                .oauth2Login(oauth2 -> oauth2
+                        .successHandler((request, response, authentication) -> {
+                            try {
+                                OAuth2User oauth2User = (OAuth2User) authentication.getPrincipal();
+                                String email = oauth2User.getAttribute("email");
+                                String name = oauth2User.getAttribute("name");
+                                String googleId = oauth2User.getAttribute("sub");
+                                
+                                String picture = oauth2User.getAttribute("picture");
+                                String givenName = oauth2User.getAttribute("given_name");
+                                String familyName = oauth2User.getAttribute("family_name");
+                                String locale = oauth2User.getAttribute("locale");
+                                
+                                StringBuilder redirectUrl = new StringBuilder("/api/v1/oauth2/success?");
+                                redirectUrl.append("email=").append(URLEncoder.encode(email != null ? email : "", "UTF-8"));
+                                redirectUrl.append("&name=").append(URLEncoder.encode(name != null ? name : "", "UTF-8"));
+                                redirectUrl.append("&googleId=").append(URLEncoder.encode(googleId != null ? googleId : "", "UTF-8"));
+                                
+                                if (picture != null) {
+                                    redirectUrl.append("&picture=").append(URLEncoder.encode(picture, "UTF-8"));
+                                }
+                                if (givenName != null) {
+                                    redirectUrl.append("&givenName=").append(URLEncoder.encode(givenName, "UTF-8"));
+                                }
+                                if (familyName != null) {
+                                    redirectUrl.append("&familyName=").append(URLEncoder.encode(familyName, "UTF-8"));
+                                }
+                                if (locale != null) {
+                                    redirectUrl.append("&locale=").append(URLEncoder.encode(locale, "UTF-8"));
+                                }
+                                
+                                response.sendRedirect(redirectUrl.toString());
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                                response.sendRedirect(frontendUrl + "/login?error=oauth2_failed");
+                            }
+                        })
+                        .failureHandler((request, response, exception) -> {
+                            response.sendRedirect(frontendUrl + "/login?error=oauth2_failed");
+                        })
                 )
                 .authenticationProvider(authenticationProvider)
                 .addFilterBefore(beaconAuthFilter, UsernamePasswordAuthenticationFilter.class)

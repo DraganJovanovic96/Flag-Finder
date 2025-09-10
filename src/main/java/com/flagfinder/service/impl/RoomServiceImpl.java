@@ -3,9 +3,12 @@ package com.flagfinder.service.impl;
 import com.flagfinder.dto.*;
 import com.flagfinder.enumeration.RoomStatus;
 import com.flagfinder.mapper.RoomMapper;
+import com.flagfinder.mapper.SinglePlayerRoomMapper;
 import com.flagfinder.model.Room;
+import com.flagfinder.model.SinglePlayerRoom;
 import com.flagfinder.model.User;
 import com.flagfinder.repository.RoomRepository;
+import com.flagfinder.repository.SinglePlayerRoomRepository;
 import com.flagfinder.repository.UserRepository;
 import com.flagfinder.service.RoomService;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +30,9 @@ public class RoomServiceImpl implements RoomService {
 
     private final UserRepository userRepository;
     private final RoomRepository roomRepository;
+    private final SinglePlayerRoomRepository singlePlayerRoomRepository;
     private final RoomMapper roomMapper;
+    private final SinglePlayerRoomMapper singlePlayerRoomMapper;
     private static final String USER_NOT_PRESENT = "User doesn't exist.";
     private final ExtractAuthenticatedUserService extractAuthenticatedUserService;
     private final SimpMessagingTemplate messagingTemplate;
@@ -38,7 +43,6 @@ public class RoomServiceImpl implements RoomService {
         User host = userRepository.findByEmail(extractAuthenticatedUserService.getAuthenticatedUser())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, USER_NOT_PRESENT));
 
-        // Clean up existing rooms that aren't in active/completed games using optimized queries
         List<Room> existingHostRooms = roomRepository.findByHostAndStatusNotInActiveOrCompleted(host);
         roomRepository.deleteAll(existingHostRooms);
 
@@ -54,6 +58,22 @@ public class RoomServiceImpl implements RoomService {
         roomRepository.save(room);
 
         return roomMapper.roomToRoomDtoMapper(room);
+    }
+
+    @Override
+    public SinglePlayerRoomDto createSinglePlayerRoom() {
+        User host = userRepository.findByEmail(extractAuthenticatedUserService.getAuthenticatedUser())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, USER_NOT_PRESENT));
+
+        List<Room> existingHostRooms = roomRepository.findByHostAndStatusNotInActiveOrCompleted(host);
+        roomRepository.deleteAll(existingHostRooms);
+
+        SinglePlayerRoom singlePlayerRoom = new SinglePlayerRoom();
+        singlePlayerRoom.setHost(host);
+        singlePlayerRoom.setStatus(RoomStatus.WAITING_FOR_GUEST);
+        singlePlayerRoomRepository.save(singlePlayerRoom);
+
+        return singlePlayerRoomMapper.singlePlayerRoomToSinglePlayerRoomDto(singlePlayerRoom);
     }
     
     @Override
@@ -94,7 +114,6 @@ public class RoomServiceImpl implements RoomService {
         User user = userRepository.findByEmail(extractAuthenticatedUserService.getAuthenticatedUser())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, USER_NOT_PRESENT));
 
-        // Find the most recent room that's waiting for a guest
         List<Room> hostRooms = roomRepository.findByHost(user);
         Room room = hostRooms.stream()
                 .filter(r -> r.getStatus() == RoomStatus.WAITING_FOR_GUEST)
@@ -141,19 +160,16 @@ public class RoomServiceImpl implements RoomService {
          User user = userRepository.findByEmail(extractAuthenticatedUserService.getAuthenticatedUser())
                  .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,"User is not found"));
 
-         // Find any room where user is host or guest (prioritize active rooms)
          List<Room> hostRooms = roomRepository.findByHost(user);
          List<Room> guestRooms = roomRepository.findByGuest(user);
          
          Room room = null;
          
-         // First try to find an active room as host
          room = hostRooms.stream()
                  .filter(r -> r.getStatus() == RoomStatus.WAITING_FOR_GUEST || r.getStatus() == RoomStatus.ROOM_READY_FOR_START)
                  .findFirst()
                  .orElse(null);
          
-         // If no active host room, try guest rooms
          if (room == null) {
              room = guestRooms.stream()
                      .filter(r -> r.getStatus() == RoomStatus.WAITING_FOR_GUEST || r.getStatus() == RoomStatus.ROOM_READY_FOR_START)

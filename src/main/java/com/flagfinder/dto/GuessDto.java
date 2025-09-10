@@ -6,5 +6,6 @@ import lombok.Data;
 public class GuessDto {
     private String userGameName;
     private String guessedCountryName;
+    private String guessedCountryId;
     private boolean correct;
 }

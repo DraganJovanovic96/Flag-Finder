@@ -5,7 +5,7 @@ import com.flagfinder.model.Round;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
-@Mapper
+@Mapper(uses = {GuessMapper.class})
 public interface RoundMapper {
 
     /**
@@ -19,5 +19,6 @@ public interface RoundMapper {
     @Mapping(target = "flagImage", source = "country.flagImage")
     @Mapping(target = "timeRemaining", ignore = true)
     @Mapping(target = "roundActive", ignore = true)
+    @Mapping(target = "guesses", source = "guesses")
     RoundDto roundToRoundDto(Round round);
 }

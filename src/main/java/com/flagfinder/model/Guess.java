@@ -14,6 +14,9 @@ public class Guess extends BaseEntity{
     private Round round;
 
     @ManyToOne
+    private SinglePlayerRound singlePlayerRound;
+
+    @ManyToOne
     private User user;
 
     @ManyToOne
