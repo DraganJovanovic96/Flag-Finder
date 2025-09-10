@@ -6,13 +6,18 @@ spring:
     driver-class-name: org.postgresql.Driver
   frontend:
     url: ${FRONTEND_URL}
-  oauth2:
-    resourceserver:
-      opaquetoken:
-        introspection-uri: https://oauth2.googleapis.com/tokeninfo
-      jwt:
-        issuer-uri: https://accounts.google.com
-        jwk-set-uri: https://www.googleapis.com/oauth2/v3/certs
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: 1014886004873-bjqdtg042kc3tao6sdtlv9mth59lqrae.apps.googleusercontent.com
+            client-secret: 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
+            scope: openid, profile, email
+
+      resourceserver:
+        jwt:
+          issuer-uri: https://accounts.google.com
   jpa:
     hibernate:
       ddl-auto: update

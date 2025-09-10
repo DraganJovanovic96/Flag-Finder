@@ -58,4 +58,12 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     Optional <User> findOneByVerificationCode(String verificationCode);
 
     boolean existsByGameNameIgnoreCase(String userName);
+
+    /**
+     * Find a user by their Google ID.
+     *
+     * @param googleId the Google ID of the user
+     * @return an Optional containing the user if found, or empty if not
+     */
+    Optional<User> findByGoogleId(String googleId);
 }
