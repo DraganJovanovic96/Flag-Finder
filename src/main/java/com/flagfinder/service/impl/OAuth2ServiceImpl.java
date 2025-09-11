@@ -10,9 +10,15 @@ import com.flagfinder.service.OAuth2Service;
 import com.flagfinder.enumeration.Role;
 import com.flagfinder.enumeration.TokenType;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -24,6 +30,9 @@ public class OAuth2ServiceImpl implements OAuth2Service {
     private final UserRepository userRepository;
     private final JwtService jwtService;
     private final TokenRepository tokenRepository;
+    
+    @Value("${spring.frontend.url}")
+    private String frontendUrl;
 
     @Override
     public AuthenticationResponseDto processOAuth2User(OAuth2User oauth2User) {
@@ -149,5 +158,45 @@ public class OAuth2ServiceImpl implements OAuth2Service {
         }
         
         return gameName;
+    }
+
+    @Override
+    public void handleOAuth2Success(Map<String, String> userParams, HttpServletResponse response) throws IOException {
+        try {
+            Map<String, Object> attributes = new HashMap<>();
+            attributes.put("email", userParams.get("email"));
+            attributes.put("name", userParams.get("name"));
+            attributes.put("sub", userParams.get("googleId"));
+            
+            if (userParams.get("picture") != null) attributes.put("picture", userParams.get("picture"));
+            if (userParams.get("givenName") != null) attributes.put("given_name", userParams.get("givenName"));
+            if (userParams.get("familyName") != null) attributes.put("family_name", userParams.get("familyName"));
+            if (userParams.get("locale") != null) attributes.put("locale", userParams.get("locale"));
+            
+            OAuth2User oauth2User = new DefaultOAuth2User(
+                Collections.singleton(new SimpleGrantedAuthority("ROLE_USER")),
+                attributes,
+                "email"
+            );
+            
+            AuthenticationResponseDto authResponse = processOAuth2User(oauth2User);
+            
+            User user = userRepository.findByEmail(userParams.get("email")).orElse(null);
+            boolean isNewUser = user != null && !user.isInitialSetupCompleted();
+            
+            if (isNewUser) {
+                String redirectUrl = String.format("%s/setup-gamename?token=%s&refreshToken=%s&currentGameName=%s", 
+                    frontendUrl, authResponse.getAccessToken(), authResponse.getRefreshToken(), 
+                    java.net.URLEncoder.encode(user.getGameName(), "UTF-8"));
+                response.sendRedirect(redirectUrl);
+            } else {
+                String redirectUrl = String.format("%s/oauth2/callback?token=%s&refreshToken=%s", 
+                    frontendUrl, authResponse.getAccessToken(), authResponse.getRefreshToken());
+                response.sendRedirect(redirectUrl);
+            }
+        } catch (Exception e) {
+            String errorUrl = String.format("%s/login?error=oauth2_failed", frontendUrl);
+            response.sendRedirect(errorUrl);
+        }
     }
 }
