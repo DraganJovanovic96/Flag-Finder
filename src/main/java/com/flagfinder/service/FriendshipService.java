@@ -15,4 +15,6 @@ public interface FriendshipService {
     Page<FriendshipDto> findAllFriendShipRequests(Integer page, Integer pageSize);
 
     Page<FriendshipDto> findAllFriends(Integer page, Integer pageSize);
+    
+    void removeFriend(String friendUsername);
 }
