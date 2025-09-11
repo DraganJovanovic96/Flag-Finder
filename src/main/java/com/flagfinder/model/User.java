@@ -97,6 +97,12 @@ public class User extends BaseEntity implements UserDetails {
     private boolean enabled;
 
     /**
+     * Flag to track if user has completed initial setup (gameName customization).
+     */
+    @Column
+    private boolean initialSetupCompleted = false;
+
+    /**
      * The user's verification code.
      */
     @Column(name = "verification_code")

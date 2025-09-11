@@ -1,6 +1,8 @@
 package com.flagfinder.controller;
 
 import com.flagfinder.dto.AuthenticationResponseDto;
+import com.flagfinder.model.User;
+import com.flagfinder.repository.UserRepository;
 import com.flagfinder.service.OAuth2Service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -23,6 +25,7 @@ import java.util.Map;
 public class OAuth2Controller {
 
     private final OAuth2Service oAuth2Service;
+    private final UserRepository userRepository;
     
     @Value("${spring.frontend.url}")
     private String frontendUrl;
@@ -54,13 +57,31 @@ public class OAuth2Controller {
                 "email"
             );
             
+            System.out.println("DEBUG - Processing OAuth2 user: " + email);
             AuthenticationResponseDto authResponse = oAuth2Service.processOAuth2User(oauth2User);
+            System.out.println("DEBUG - OAuth2 processing completed, tokens generated");
             
-            String redirectUrl = String.format("%s/oauth2/callback?token=%s&refreshToken=%s", 
-                frontendUrl, authResponse.getAccessToken(), authResponse.getRefreshToken());
+            // Check if this is a new user (first time login) to show gameName customization
+            User user = userRepository.findByEmail(email).orElse(null);
+            boolean isNewUser = user != null && !user.isInitialSetupCompleted();
+            System.out.println("DEBUG - Is new user (needs setup): " + isNewUser);
+            System.out.println("DEBUG - Frontend URL: " + frontendUrl);
             
-            response.sendRedirect(redirectUrl);
+            if (isNewUser) {
+                String redirectUrl = String.format("%s/setup-gamename?token=%s&refreshToken=%s&currentGameName=%s", 
+                    frontendUrl, authResponse.getAccessToken(), authResponse.getRefreshToken(), 
+                    java.net.URLEncoder.encode(user.getGameName(), "UTF-8"));
+                System.out.println("DEBUG - Redirecting new user to: " + redirectUrl);
+                response.sendRedirect(redirectUrl);
+            } else {
+                String redirectUrl = String.format("%s/oauth2/callback?token=%s&refreshToken=%s", 
+                    frontendUrl, authResponse.getAccessToken(), authResponse.getRefreshToken());
+                System.out.println("DEBUG - Redirecting existing user to: " + redirectUrl);
+                response.sendRedirect(redirectUrl);
+            }
         } catch (Exception e) {
+            System.out.println("DEBUG - OAuth2 error: " + e.getMessage());
+            e.printStackTrace();
             String errorUrl = String.format("%s/login?error=oauth2_failed", frontendUrl);
             response.sendRedirect(errorUrl);
         }
