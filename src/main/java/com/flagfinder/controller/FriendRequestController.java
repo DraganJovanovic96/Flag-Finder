@@ -53,13 +53,6 @@ public class FriendRequestController {
                 .body(friendshipService.sendFriendRequest(sendUserNameDto));
     }
 
-    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, path = "/request")
-    @PreAuthorize("hasAnyAuthority('admin:create', 'user:create')")
-    public ResponseEntity<Void> sendFriendRequestSimple(@Valid @RequestBody SendUserNameDto sendUserNameDto) {
-        friendshipService.sendFriendRequest(sendUserNameDto);
-        return ResponseEntity.ok().build();
-    }
-
     @PutMapping(consumes = MediaType.APPLICATION_JSON_VALUE, path = "/friend-request-response")
     @PreAuthorize("hasAnyAuthority('admin:create', 'user:create')")
     @ApiOperation(value = "Friend request response")
@@ -70,13 +63,6 @@ public class FriendRequestController {
     public ResponseEntity<FriendshipDto> friendRequestResponse(@Valid @RequestBody FriendRequestResponseDto friendRequestResponseDto) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(friendshipService.respondToFriendRequest(friendRequestResponseDto));
-    }
-
-    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, path = "/respond")
-    @PreAuthorize("hasAnyAuthority('admin:create', 'user:create')")
-    public ResponseEntity<Void> respondToFriendRequestSimple(@Valid @RequestBody FriendRequestResponseDto friendRequestResponseDto) {
-        friendshipService.respondToFriendRequest(friendRequestResponseDto);
-        return ResponseEntity.ok().build();
     }
 
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE, path = "/requests")
@@ -115,23 +101,13 @@ public class FriendRequestController {
         return new ResponseEntity<>(resultPage.getContent(), headers, HttpStatus.OK);
     }
 
-    @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE, path = "/requests/received")
-    @PreAuthorize("hasAnyAuthority('admin:read', 'user:read')")
-    public ResponseEntity<List<FriendshipDto>> getReceivedFriendRequests() {
-        Page<FriendshipDto> resultPage = friendshipService.findAllFriendShipRequests(0, 100);
-        return ResponseEntity.ok(resultPage.getContent());
-    }
-
-    @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE, path = "/requests/sent")
-    @PreAuthorize("hasAnyAuthority('admin:read', 'user:read')")
-    public ResponseEntity<List<FriendshipDto>> getSentFriendRequests() {
-        // For now, return empty list since there's no service method for sent requests
-        // This would need to be implemented in the service layer
-        return ResponseEntity.ok(java.util.Collections.emptyList());
-    }
-
     @DeleteMapping(path = "/{friendUsername}")
     @PreAuthorize("hasAnyAuthority('admin:delete', 'user:delete')")
+    @ApiOperation(value = "Remove friend")
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Successfully removed friend."),
+            @ApiResponse(code = 404, message = "Friend not found.")
+    })
     public ResponseEntity<Void> removeFriend(@PathVariable String friendUsername) {
         friendshipService.removeFriend(friendUsername);
         return ResponseEntity.ok().build();

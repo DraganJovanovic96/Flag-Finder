@@ -25,5 +25,12 @@ public interface FriendshipRepository extends JpaRepository<Friendship, UUID> {
 
     Optional<Friendship> findByInitiatorAndTarget(User initiator, User target);
 
+    @Query("""
+    SELECT f FROM Friendship f
+    WHERE ((f.initiator = :user1 AND f.target = :user2) OR (f.initiator = :user2 AND f.target = :user1))
+    AND f.friendshipStatus = :status
+""")
+    Optional<Friendship> findFriendshipBetweenUsers(@Param("user1") User user1, @Param("user2") User user2, @Param("status") FriendshipStatus status);
+
     Page<Friendship> findByTargetAndFriendshipStatus(User target, FriendshipStatus friendshipStatus, Pageable pageable);
 }

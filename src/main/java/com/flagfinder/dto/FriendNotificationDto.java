@@ -10,7 +10,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 public class FriendNotificationDto {
-    private String message;
-    private UUID fromUserId;
-    private String fromUserUsername;
+    private String senderUsername;
+    private String action; // "REQUEST", "ACCEPTED", "DECLINED", "REMOVED"
+    private String friendshipStatus;
 }

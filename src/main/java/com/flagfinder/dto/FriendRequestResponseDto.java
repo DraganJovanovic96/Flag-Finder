@@ -7,7 +7,6 @@ import lombok.Data;
 public class FriendRequestResponseDto {
 
     private String initiatorUserName;
-    private String senderUsername;
-    private boolean accepted;
+
     private FriendshipStatus friendshipStatus;
 }

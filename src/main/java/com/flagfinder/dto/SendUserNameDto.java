@@ -5,6 +5,4 @@ import lombok.Data;
 @Data
 public class SendUserNameDto {
     private String userName;
-    private String targetUsername;
-    private String message;
 }
