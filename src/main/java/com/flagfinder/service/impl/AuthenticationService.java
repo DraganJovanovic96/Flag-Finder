@@ -124,6 +124,13 @@ public class AuthenticationService {
                 .build();
     }
 
+    /**
+     * Sets a password reset code for the user and sends a reset email.
+     *
+     * @param emailRequestDto the email request containing the user's email address
+     * @throws UnsupportedEncodingException if URL encoding fails
+     * @throws ResponseStatusException if user doesn't exist
+     */
     public void setPasswordResetCode(EmailRequestDto emailRequestDto) throws UnsupportedEncodingException {
         User user = repository.findByEmail(emailRequestDto.getEmail())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, " User doesn't exist"));
@@ -137,6 +144,15 @@ public class AuthenticationService {
         sendResetPasswordLink(emailRequestDto.getEmail(), generatedToken);
     }
 
+    /**
+     * Resets a user's password using a password reset code.
+     *
+     * @param passwordCode the password reset code
+     * @param email the user's email address
+     * @param passwordResetDto the DTO containing new password information
+     * @return an AuthenticationResponseDto with new tokens
+     * @throws ResponseStatusException if user doesn't exist, code is invalid, expired, or passwords don't match
+     */
     public AuthenticationResponseDto resetPassword(String passwordCode, String email, PasswordResetDto passwordResetDto) {
         User user = repository.findByEmail(email)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, " User doesn't exist"));
@@ -276,6 +292,14 @@ public class AuthenticationService {
         }
     }
 
+    /**
+     * Verifies a user account using a verification token.
+     *
+     * @param token the verification token
+     * @param email the user's email address
+     * @return an AuthenticationResponseDto with new tokens
+     * @throws ResponseStatusException if user doesn't exist, already verified, token is invalid or expired
+     */
     public AuthenticationResponseDto verifyUser(String token, String email) {
         User user = repository.findByEmail(email)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, " User doesn't exist"));
@@ -310,6 +334,13 @@ public class AuthenticationService {
                 .build();
     }
 
+    /**
+     * Resends a verification code to the user's email.
+     *
+     * @param email the user's email address
+     * @throws UnsupportedEncodingException if URL encoding fails
+     * @throws ResponseStatusException if user doesn't exist or is already verified
+     */
     public void resendVerificationCode(String email) throws UnsupportedEncodingException {
         User user = repository.findByEmail(email)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, " User doesn't exist"));
@@ -325,6 +356,13 @@ public class AuthenticationService {
         repository.save(user);
     }
 
+    /**
+     * Sends a verification email to the user.
+     *
+     * @param token the verification token
+     * @param email the user's email address
+     * @throws UnsupportedEncodingException if URL encoding fails
+     */
     public void sendVerificationEmail(String token, String email) throws UnsupportedEncodingException {
         String subject = "MSS Account Verification";
 
@@ -433,6 +471,14 @@ public class AuthenticationService {
         }
     }
 
+    /**
+     * Sends a password reset link to the user's email.
+     *
+     * @param email the user's email address
+     * @param generatedToken the generated password reset token
+     * @throws UnsupportedEncodingException if URL encoding fails
+     * @throws ResponseStatusException if user doesn't exist
+     */
     public void sendResetPasswordLink(String email, String generatedToken) throws UnsupportedEncodingException {
         User user = repository.findByEmail(email)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User doesn't exist"));
@@ -479,6 +525,11 @@ public class AuthenticationService {
         }
     }
 
+    /**
+     * Generates a secure random verification code.
+     *
+     * @return a randomly generated verification code string
+     */
     public static String generateVerificationCode() {
         SecureRandom secureRandom = new SecureRandom();
         StringBuilder verificationCode = new StringBuilder(CODE_LENGTH);

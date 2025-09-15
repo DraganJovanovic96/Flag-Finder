@@ -23,6 +23,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+/**
+ * Implementation of OAuth2Service interface.
+ * Handles OAuth2 authentication processing for Google OAuth2 integration.
+ * Manages user creation, updates, and JWT token generation for OAuth2 users.
+ * Provides seamless integration between Google OAuth2 and the application's authentication system.
+ */
 @Service
 @RequiredArgsConstructor
 public class OAuth2ServiceImpl implements OAuth2Service {
@@ -34,6 +40,14 @@ public class OAuth2ServiceImpl implements OAuth2Service {
     @Value("${spring.frontend.url}")
     private String frontendUrl;
 
+    /**
+     * Processes an OAuth2 user and creates or updates the corresponding application user.
+     * Extracts user information from OAuth2 attributes, handles user creation or updates,
+     * and generates JWT tokens for authentication.
+     *
+     * @param oauth2User the OAuth2 user object containing user attributes from Google
+     * @return AuthenticationResponseDto containing access and refresh tokens
+     */
     @Override
     public AuthenticationResponseDto processOAuth2User(OAuth2User oauth2User) {
         String email = oauth2User.getAttribute("email");
@@ -117,6 +131,12 @@ public class OAuth2ServiceImpl implements OAuth2Service {
                 .build();
     }
 
+    /**
+     * Revokes all existing valid tokens for a user.
+     * Marks all user's tokens as expired and revoked to ensure security.
+     *
+     * @param user the user whose tokens should be revoked
+     */
     private void revokeAllUserTokens(User user) {
         var validUserTokens = tokenRepository.findAllValidTokenByUser(user.getId());
         if (validUserTokens.isEmpty())
@@ -128,6 +148,13 @@ public class OAuth2ServiceImpl implements OAuth2Service {
         tokenRepository.saveAll(validUserTokens);
     }
 
+    /**
+     * Saves a new JWT token for a user in the token repository.
+     * Creates a new token entity with the provided JWT token.
+     *
+     * @param user the user to associate the token with
+     * @param jwtToken the JWT token string to save
+     */
     private void saveUserToken(User user, String jwtToken) {
         var token = Token.builder()
                 .user(user)
@@ -139,6 +166,14 @@ public class OAuth2ServiceImpl implements OAuth2Service {
         tokenRepository.save(token);
     }
 
+    /**
+     * Generates a unique game name based on the user's display name.
+     * Sanitizes the name, ensures uniqueness by appending numbers if needed,
+     * and enforces length constraints.
+     *
+     * @param name the base name to generate a game name from
+     * @return a unique game name that doesn't conflict with existing users
+     */
     private String generateUniqueGameName(String name) {
         if (name == null || name.trim().isEmpty()) {
             name = "Player";
@@ -160,6 +195,15 @@ public class OAuth2ServiceImpl implements OAuth2Service {
         return gameName;
     }
 
+    /**
+     * Handles successful OAuth2 authentication by processing user parameters
+     * and redirecting to appropriate frontend URLs with authentication tokens.
+     * Determines if user needs initial setup and redirects accordingly.
+     *
+     * @param userParams map containing user information from OAuth2 provider
+     * @param response HTTP response object for sending redirects
+     * @throws IOException if redirect operation fails
+     */
     @Override
     public void handleOAuth2Success(Map<String, String> userParams, HttpServletResponse response) throws IOException {
         try {

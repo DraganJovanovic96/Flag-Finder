@@ -268,6 +268,13 @@ public class UserServiceImpl implements UserService {
         return new PageImpl<>(userDtos, resultPage.getPageable(), resultPage.getTotalElements());
     }
 
+    /**
+     * Retrieves a user profile by email address.
+     *
+     * @param email the email address of the user
+     * @return a UserProfileDto containing the user's profile information
+     * @throws ResponseStatusException if user is not found with the given email
+     */
     @Override
     public UserProfileDto getUserProfileByEmail(String email) {
         User user = userRepository.findByEmail(email)
@@ -279,6 +286,13 @@ public class UserServiceImpl implements UserService {
         return userProfileDto;
     }
 
+    /**
+     * Sets the online status for a user identified by their game name.
+     *
+     * @param gameName the game name of the user
+     * @param isOnline the online status to set (true for online, false for offline)
+     * @throws ResponseStatusException if user is not found with the given game name
+     */
     @Override
     @Transactional
     public void setUserOnlineStatus(String gameName, boolean isOnline) {

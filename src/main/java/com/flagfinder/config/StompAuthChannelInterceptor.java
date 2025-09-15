@@ -18,15 +18,38 @@ import org.springframework.util.StringUtils;
 
 import java.util.List;
 
+/**
+ * STOMP channel interceptor for WebSocket authentication.
+ * Intercepts CONNECT commands to validate JWT tokens and set user authentication.
+ */
 @Component
 @RequiredArgsConstructor
 @Slf4j
 public class StompAuthChannelInterceptor implements ChannelInterceptor {
 
+    /**
+     * Service for JWT token operations.
+     */
     private final JwtService jwtService;
+    
+    /**
+     * Service for loading user details during authentication.
+     */
     private final UserDetailsService userDetailsService;
+    
+    /**
+     * Repository for user data access.
+     */
     private final UserRepository userRepository;
 
+    /**
+     * Intercepts messages before they are sent to authenticate WebSocket connections.
+     * Validates JWT tokens from Authorization header during CONNECT commands.
+     *
+     * @param message the message being sent
+     * @param channel the message channel
+     * @return the message (potentially modified)
+     */
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
         StompHeaderAccessor accessor = StompHeaderAccessor.wrap(message);

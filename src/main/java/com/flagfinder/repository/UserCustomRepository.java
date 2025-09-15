@@ -15,6 +15,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+/**
+ * Custom repository implementation for User entity operations.
+ * Provides advanced filtering capabilities using JPA Criteria API
+ * for dynamic query construction based on user filter criteria.
+ */
 @Data
 @Repository
 public class UserCustomRepository {

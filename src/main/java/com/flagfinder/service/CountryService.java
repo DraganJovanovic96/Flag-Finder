@@ -10,6 +10,7 @@ import java.util.UUID;
 
 /**
  * Service interface for country operations.
+ * Provides methods for country management, search functionality, and integration with external APIs.
  */
 public interface CountryService {
     
@@ -22,6 +23,12 @@ public interface CountryService {
      */
     Country createCountryFromImageUrl(CountryCreateDto countryCreateDto);
 
+    /**
+     * Deletes a country by its name.
+     * 
+     * @param countryName the name of the country to delete
+     * @throws RuntimeException if country not found or deletion fails
+     */
     public void deleteCountryByName(String countryName);
 
     /**

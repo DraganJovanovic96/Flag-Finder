@@ -11,6 +11,11 @@ import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 
 import java.security.Principal;
 
+/**
+ * WebSocket event listener for handling user connection and disconnection events.
+ * Manages user online status tracking by listening to WebSocket session lifecycle events.
+ * Updates user online status in the database when users connect or disconnect from WebSocket.
+ */
 @Component
 @RequiredArgsConstructor
 @Slf4j
@@ -18,6 +23,13 @@ public class WebSocketEventListener {
 
     private final UserService userService;
 
+    /**
+     * Handles WebSocket connection events.
+     * Sets the user's online status to true when they establish a WebSocket connection.
+     * Extracts the user principal from the session and updates their online status.
+     *
+     * @param event the session connected event containing connection details
+     */
     @EventListener
     public void handleWebSocketConnectListener(SessionConnectedEvent event) {
         StompHeaderAccessor headerAccessor = StompHeaderAccessor.wrap(event.getMessage());
@@ -33,6 +45,13 @@ public class WebSocketEventListener {
         }
     }
 
+    /**
+     * Handles WebSocket disconnection events.
+     * Sets the user's online status to false when they disconnect from WebSocket.
+     * Extracts the user principal from the session and updates their online status.
+     *
+     * @param event the session disconnect event containing disconnection details
+     */
     @EventListener
     public void handleWebSocketDisconnectListener(SessionDisconnectEvent event) {
         StompHeaderAccessor headerAccessor = StompHeaderAccessor.wrap(event.getMessage());

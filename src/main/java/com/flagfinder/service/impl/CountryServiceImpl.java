@@ -39,6 +39,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * Implementation of CountryService interface.
+ * Provides comprehensive country management functionality including creation, deletion, search,
+ * external API integration, flag image handling, and bilingual search capabilities.
+ * Supports both regular countries and US states with proper continent mapping.
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -50,6 +56,13 @@ public class CountryServiceImpl implements CountryService {
     private final RoundRepository roundRepository;
     private final SinglePlayerRoundRepository singlePlayerRoundRepository;
 
+    /**
+     * Creates a new country from the provided DTO with image URL.
+     *
+     * @param countryCreateDto the DTO containing country information and image URL
+     * @return the created Country object
+     * @throws RuntimeException if country creation or image download fails
+     */
     @Override
     public Country createCountryFromImageUrl(CountryCreateDto countryCreateDto) {
         try {
@@ -72,6 +85,12 @@ public class CountryServiceImpl implements CountryService {
         }
     }
 
+    /**
+     * Deletes a country by its name and cleans up all related data.
+     *
+     * @param countryName the name of the country to delete
+     * @throws ResponseStatusException if the country is not found
+     */
     @Override
     @Transactional
     public void deleteCountryByName(String countryName) {
@@ -101,17 +120,37 @@ public class CountryServiceImpl implements CountryService {
         countryRepository.delete(country);
     }
 
+    /**
+     * Retrieves all countries from the database.
+     *
+     * @return a list of all Country objects
+     */
     @Override
     public List<Country> getAllCountries() {
         return countryRepository.findAll();
     }
 
+    /**
+     * Retrieves a country by its unique identifier.
+     *
+     * @param id the unique UUID identifier of the country
+     * @return the Country object
+     * @throws RuntimeException if the country is not found
+     */
     @Override
     public Country getCountryById(UUID id) {
         return countryRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Country not found with ID: " + id));
     }
 
+    /**
+     * Searches for countries by name prefix with a specified limit.
+     *
+     * @param prefix the search prefix to match country names
+     * @param limit the maximum number of results to return
+     * @return a list of CountrySearchDto objects matching the prefix
+     * @throws RuntimeException if the search fails or prefix is empty
+     */
     @Override
     public List<CountrySearchDto> searchCountriesByPrefix(String prefix, int limit) {
         try {
@@ -130,6 +169,14 @@ public class CountryServiceImpl implements CountryService {
         }
     }
 
+    /**
+     * Searches for countries by name prefix in both English and Serbian with a specified limit.
+     *
+     * @param prefix the search prefix to match country names in either language
+     * @param limit the maximum number of results to return
+     * @return a list of BilingualCountrySearchDto objects matching the prefix
+     * @throws RuntimeException if the search fails or prefix is empty
+     */
     @Override
     public List<BilingualCountrySearchDto> searchCountriesBilingualByPrefix(String prefix, int limit) {
         try {
@@ -159,6 +206,14 @@ public class CountryServiceImpl implements CountryService {
         }
     }
 
+    /**
+     * Loads countries from the REST Countries API and saves them to the database.
+     * Fetches country data including names, flags, continents, and country codes.
+     * Skips countries that already exist in the database.
+     *
+     * @return success message with count of loaded countries
+     * @throws RuntimeException if API call fails or data processing fails
+     */
     @Override
     public String loadCountriesFromRestApi() {
         try {
@@ -205,6 +260,14 @@ public class CountryServiceImpl implements CountryService {
         }
     }
 
+    /**
+     * Loads US states from the Flag CDN API and saves them to the database.
+     * Fetches state data including names, flag images, and Serbian translations.
+     * All states are categorized under the USA_STATE continent.
+     *
+     * @return success message with count of loaded states
+     * @throws RuntimeException if API call fails or data processing fails
+     */
     @Override
     public String loadUsStatesFromRestApi() {
        try {
@@ -253,6 +316,14 @@ public class CountryServiceImpl implements CountryService {
         }
     }
 
+    /**
+     * Converts a REST API country DTO to a Country entity.
+     * Maps country names, continents, flag images, and country codes.
+     * Downloads flag images from external URLs.
+     *
+     * @param restCountry the REST API country DTO
+     * @return the converted Country entity, or null if conversion fails
+     */
     private Country convertRestCountryToEntity(RestCountryDto restCountry) {
         if (restCountry.getName() == null || restCountry.getName().getCommon() == null) {
             log.warn("Skipping country with missing name data");
@@ -292,6 +363,13 @@ public class CountryServiceImpl implements CountryService {
         return country;
     }
     
+    /**
+     * Maps continent name strings to Continent enum values.
+     * Handles various continent name formats and aliases.
+     *
+     * @param continentName the continent name string
+     * @return the corresponding Continent enum, or null if not found
+     */
     private Continent mapStringToContinent(String continentName) {
         if (continentName == null) {
             return null;
@@ -312,6 +390,13 @@ public class CountryServiceImpl implements CountryService {
         };
     }
 
+    /**
+     * Translates country ISO codes to Serbian Latin script names.
+     * Uses Java's Locale system for automatic translation.
+     *
+     * @param isoCode the ISO country code
+     * @return the Serbian Latin name, or null if translation fails
+     */
     private String translateToSerbianLatin(String isoCode) {
         if (isoCode == null || isoCode.isEmpty()) {
             return null;
@@ -327,6 +412,13 @@ public class CountryServiceImpl implements CountryService {
         }
     }
 
+    /**
+     * Translates US state codes to Serbian Latin script names.
+     * Uses a comprehensive mapping of all US states and territories.
+     *
+     * @param stateCode the US state code (e.g., "CA", "NY")
+     * @return the Serbian Latin name of the state, or null if not found
+     */
     private String translateStateToSerbianLatin(String stateCode) {
         if (stateCode == null || stateCode.isEmpty()) {
             return null;
@@ -420,6 +512,15 @@ public class CountryServiceImpl implements CountryService {
         }
     }
     
+    /**
+     * Retrieves a country's flag image as an HTTP response.
+     * Automatically detects image format (PNG, JPEG, SVG) and sets appropriate headers.
+     * Enhances SVG flags with minimum dimensions for better visibility.
+     *
+     * @param id the UUID of the country
+     * @return ResponseEntity containing the flag image with proper headers
+     * @throws RuntimeException if country not found or flag image unavailable
+     */
     @Override
     public ResponseEntity<byte[]> getCountryFlagResponse(UUID id) {
         try {
@@ -458,6 +559,14 @@ public class CountryServiceImpl implements CountryService {
         }
     }
     
+    /**
+     * Retrieves countries that belong to any of the specified continents.
+     * If no continents are specified, returns all countries.
+     *
+     * @param continents list of continents to filter by
+     * @return list of countries belonging to any of the specified continents
+     * @throws RuntimeException if database query fails
+     */
     @Override
     public List<Country> getCountriesByAnyContinents(List<com.flagfinder.enumeration.Continent> continents) {
         try {
@@ -476,6 +585,15 @@ public class CountryServiceImpl implements CountryService {
         }
     }
     
+    /**
+     * Retrieves a random country from any of the specified continents.
+     * If no continents are specified, returns a random country from all available.
+     * Uses database-level randomization for performance.
+     *
+     * @param continents list of continents to select from
+     * @return a randomly selected country
+     * @throws RuntimeException if no countries found or database query fails
+     */
     @Override
     public Country getRandomCountryFromAnyContinents(List<com.flagfinder.enumeration.Continent> continents) {
         try {

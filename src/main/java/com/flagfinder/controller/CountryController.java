@@ -142,6 +142,11 @@ public class CountryController {
         return ResponseEntity.ok(result);
     }
 
+    /**
+     * Loads US states from external API into the database.
+     *
+     * @return ResponseEntity with operation result message
+     */
     @PostMapping("/load-us-states-api")
     @PreAuthorize("hasAuthority('admin:create')")
     public ResponseEntity<String> loadUsStatesApi() {

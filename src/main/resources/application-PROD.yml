@@ -6,13 +6,18 @@ spring:
     driver-class-name: org.postgresql.Driver
   frontend:
     url: ${FRONTEND_URL}
-  oauth2:
-    resourceserver:
-      opaquetoken:
-        introspection-uri: https://oauth2.googleapis.com/tokeninfo
-      jwt:
-        issuer-uri: https://accounts.google.com
-        jwk-set-uri: https://www.googleapis.com/oauth2/v3/certs
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            scope: openid, profile, email
+
+      resourceserver:
+        jwt:
+          issuer-uri: https://accounts.google.com
   jpa:
     hibernate:
       ddl-auto: update
@@ -20,6 +25,7 @@ spring:
     properties:
       hibernate:
         format_sql: true
+        default_schema: public
     database: postgresql
     database-platform: org.hibernate.dialect.PostgreSQLDialect
 
@@ -28,7 +34,7 @@ spring:
     enabled: true
     baseline-on-migrate: true
     baseline-version: 0
-    locations: classpath:db/migration
+    locations: classpath:migration
 
   mail:
     host: smtp.gmail.com

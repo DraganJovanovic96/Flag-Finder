@@ -25,6 +25,12 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Implementation of the FriendshipService interface.
+ * Provides comprehensive friendship management functionality including friend requests,
+ * responses, friend list management, and real-time WebSocket notifications.
+ * Handles bidirectional friendship relationships and online status tracking.
+ */
 @Service
 @RequiredArgsConstructor
 public class FriendshipServiceImpl implements FriendshipService {
@@ -39,6 +45,13 @@ public class FriendshipServiceImpl implements FriendshipService {
 
     private final SimpMessagingTemplate messagingTemplate;
 
+    /**
+     * Sends a friend request to another user.
+     *
+     * @param sendUserNameDto the DTO containing the username to send friend request to
+     * @return a FriendshipDto representing the created friend request
+     * @throws ResponseStatusException if user doesn't exist, trying to add self, or request already exists
+     */
     @Override
     public FriendshipDto sendFriendRequest(@Valid SendUserNameDto sendUserNameDto) {
             User target = userRepository
@@ -90,6 +103,13 @@ public class FriendshipServiceImpl implements FriendshipService {
                 return friendshipMapper.friendshipToFriendshipDto(friendship);
         }
 
+    /**
+     * Responds to a friend request (accept or decline).
+     *
+     * @param friendRequestResponseDto the DTO containing the response to the friend request
+     * @return a FriendshipDto representing the updated friendship
+     * @throws ResponseStatusException if friend request is not found or user doesn't exist
+     */
     @Override
     public FriendshipDto respondToFriendRequest(FriendRequestResponseDto friendRequestResponseDto) {
 
@@ -128,6 +148,13 @@ public class FriendshipServiceImpl implements FriendshipService {
         return friendshipMapper.friendshipToFriendshipDto(friendship);
     }
 
+    /**
+     * Retrieves paginated friend requests for the authenticated user.
+     *
+     * @param page the page number (0-based)
+     * @param pageSize the number of items per page
+     * @return a Page of FriendshipDto objects representing pending friend requests
+     */
     @Override
     public Page<FriendshipDto> findAllFriendShipRequests(Integer page, Integer pageSize) {
 
@@ -139,6 +166,13 @@ public class FriendshipServiceImpl implements FriendshipService {
        return new PageImpl<>(friendshipDtos, resultPage.getPageable(), resultPage.getTotalElements());
     }
 
+    /**
+     * Retrieves paginated friends list for the authenticated user.
+     *
+     * @param page the page number (0-based)
+     * @param pageSize the number of items per page
+     * @return a Page of FriendshipDto objects representing accepted friendships
+     */
     @Override
     public Page<FriendshipDto> findAllFriends(Integer page, Integer pageSize) {
         User user = userService.getUserFromAuthentication();
@@ -163,6 +197,12 @@ public class FriendshipServiceImpl implements FriendshipService {
         return new PageImpl<>(friendshipDtos, PageRequest.of(page, pageSize), friendships.size());
     }
 
+    /**
+     * Removes a friend from the authenticated user's friends list.
+     *
+     * @param friendUsername the username of the friend to remove
+     * @throws ResponseStatusException if user is not found or friendship doesn't exist
+     */
     @Override
     public void removeFriend(String friendUsername) {
         User currentUser = userService.getUserFromAuthentication();
@@ -191,6 +231,7 @@ public class FriendshipServiceImpl implements FriendshipService {
                     notification
             );
         } catch (Exception e) {
+            System.err.println("Failed to send friend removal WebSocket notification: " + e.getMessage());
         }
     }
 }

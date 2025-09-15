@@ -12,6 +12,12 @@ import org.springframework.stereotype.Service;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Implementation of the GameNameService interface.
+ * Provides comprehensive game name management functionality including validation,
+ * availability checking, and JWT token regeneration with updated claims.
+ * Handles game name constraints and user setup completion.
+ */
 @Service
 @RequiredArgsConstructor
 public class GameNameServiceImpl implements GameNameService {
@@ -19,6 +25,16 @@ public class GameNameServiceImpl implements GameNameService {
     private final UserRepository userRepository;
     private final JwtService jwtService;
 
+    /**
+     * Sets a game name for the authenticated user.
+     * Validates game name format, checks availability, updates user record,
+     * and generates new JWT tokens with updated claims.
+     *
+     * @param request the request containing the game name
+     * @param authentication the authentication object containing user details
+     * @return ResponseEntity with new JWT tokens or error message
+     * @throws RuntimeException if user not found
+     */
     @Override
     public ResponseEntity<?> setGameName(Map<String, String> request, Authentication authentication) {
         try {
@@ -66,6 +82,13 @@ public class GameNameServiceImpl implements GameNameService {
         }
     }
 
+    /**
+     * Checks if a game name is available for use.
+     * Performs case-insensitive lookup to determine availability.
+     *
+     * @param gameName the game name to check for availability
+     * @return ResponseEntity with availability status (true if available, false if taken)
+     */
     @Override
     public ResponseEntity<?> checkGameNameAvailability(String gameName) {
         var existingUser = userRepository.findOneByGameNameIgnoreCase(gameName);

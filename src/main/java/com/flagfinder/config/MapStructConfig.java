@@ -27,7 +27,9 @@ import org.springframework.context.annotation.Configuration;
 )
 public class MapStructConfig {
     /**
-     * This method creates a bean of userMapper, so it can be used by IoC.
+     * Creates a UserMapper bean for dependency injection.
+     * 
+     * @return configured UserMapper instance
      */
     @Bean
     public com.flagfinder.mapper.UserMapper userMapper() {
@@ -35,7 +37,9 @@ public class MapStructConfig {
     }
 
     /**
-     * This method creates a bean of friendshipMapper, so it can be used by IoC.
+     * Creates a FriendshipMapper bean for dependency injection.
+     * 
+     * @return configured FriendshipMapper instance
      */
     @Bean
     public com.flagfinder.mapper.FriendshipMapper friendshipMapper() {
@@ -43,7 +47,9 @@ public class MapStructConfig {
     }
 
     /**
-     * This method creates a bean of roomMapper, so it can be used by IoC.
+     * Creates a RoomMapper bean for dependency injection.
+     * 
+     * @return configured RoomMapper instance
      */
     @Bean
     public com.flagfinder.mapper.RoomMapper roomMapper() {
@@ -51,7 +57,9 @@ public class MapStructConfig {
     }
 
     /**
-     * This method creates a bean of gameMapper, so it can be used by IoC.
+     * Creates a GameMapper bean for dependency injection.
+     * 
+     * @return configured GameMapper instance
      */
     @Bean
     public com.flagfinder.mapper.GameMapper gameMapper() {
@@ -59,7 +67,9 @@ public class MapStructConfig {
     }
 
     /**
-     * This method creates a bean of roundMapper, so it can be used by IoC.
+     * Creates a RoundMapper bean for dependency injection.
+     * 
+     * @return configured RoundMapper instance
      */
     @Bean
     public com.flagfinder.mapper.RoundMapper roundMapper() {
@@ -67,7 +77,9 @@ public class MapStructConfig {
     }
 
     /**
-     * This method creates a bean of guessMapper, so it can be used by IoC.
+     * Creates a GuessMapper bean for dependency injection.
+     * 
+     * @return configured GuessMapper instance
      */
     @Bean
     public com.flagfinder.mapper.GuessMapper guessMapper() {
@@ -75,7 +87,9 @@ public class MapStructConfig {
     }
 
     /**
-     * This method creates a bean of singlePlayerRoomMapper, so it can be used by IoC.
+     * Creates a SinglePlayerRoomMapper bean for dependency injection.
+     * 
+     * @return configured SinglePlayerRoomMapper instance
      */
     @Bean
     public com.flagfinder.mapper.SinglePlayerRoomMapper singlePlayerRoomMapper() {
@@ -83,7 +97,9 @@ public class MapStructConfig {
     }
 
     /**
-     * This method creates a bean of singlePlayerGameMapper, so it can be used by IoC.
+     * Creates a SinglePlayerGameMapper bean for dependency injection.
+     * 
+     * @return configured SinglePlayerGameMapper instance
      */
     @Bean
     public com.flagfinder.mapper.SinglePlayerGameMapper singlePlayerGameMapper() {
@@ -91,7 +107,9 @@ public class MapStructConfig {
     }
 
     /**
-     * This method creates a bean of singlePlayerRoundMapper, so it can be used by IoC.
+     * Creates a SinglePlayerRoundMapper bean for dependency injection.
+     * 
+     * @return configured SinglePlayerRoundMapper instance
      */
     @Bean
     public com.flagfinder.mapper.SinglePlayerRoundMapper singlePlayerRoundMapper() {
