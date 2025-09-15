@@ -1,5 +1,6 @@
 package com.flagfinder.controller;
 
+import com.flagfinder.dto.BilingualCountrySearchDto;
 import com.flagfinder.dto.CountryCreateDto;
 import com.flagfinder.dto.CountrySearchDto;
 import com.flagfinder.enumeration.Continent;
@@ -110,6 +111,19 @@ public class CountryController {
     @GetMapping("/search")
     public ResponseEntity<List<CountrySearchDto>> searchCountries(@RequestParam String prefix) {
         List<CountrySearchDto> countries = countryService.searchCountriesByPrefix(prefix, 5);
+
+        return ResponseEntity.ok(countries);
+    }
+
+    /**
+     * Searches countries by name prefix in both English and Serbian with text normalization
+     * 
+     * @param prefix the prefix to search for
+     * @return ResponseEntity with list of matching countries (max 10)
+     */
+    @GetMapping("/search/bilingual")
+    public ResponseEntity<List<BilingualCountrySearchDto>> searchCountriesBilingual(@RequestParam String prefix) {
+        List<BilingualCountrySearchDto> countries = countryService.searchCountriesBilingualByPrefix(prefix, 10);
 
         return ResponseEntity.ok(countries);
     }

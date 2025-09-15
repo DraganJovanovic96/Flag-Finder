@@ -1,5 +1,6 @@
 package com.flagfinder.service;
 
+import com.flagfinder.dto.BilingualCountrySearchDto;
 import com.flagfinder.dto.CountryCreateDto;
 import com.flagfinder.dto.CountrySearchDto;
 import com.flagfinder.model.Country;
@@ -66,6 +67,16 @@ public interface CountryService {
      * @throws RuntimeException if search fails
      */
     List<CountrySearchDto> searchCountriesByPrefix(String prefix, int limit);
+    
+    /**
+     * Searches countries by name prefix in both English and Serbian with text normalization
+     * 
+     * @param prefix the prefix to search for
+     * @param limit maximum number of results to return
+     * @return list of countries matching the prefix in either language
+     * @throws RuntimeException if search fails
+     */
+    List<BilingualCountrySearchDto> searchCountriesBilingualByPrefix(String prefix, int limit);
     
     /**
      * Loads countries from REST Countries API and saves them to database

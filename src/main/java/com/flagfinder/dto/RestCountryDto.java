@@ -12,6 +12,7 @@ public class RestCountryDto {
     private FlagsDto flags;
     private NameDto name;
     private List<String> continents;
+    private String cca2;
     
     @Data
     @JsonIgnoreProperties(ignoreUnknown = true)

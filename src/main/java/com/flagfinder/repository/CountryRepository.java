@@ -38,6 +38,25 @@ public interface CountryRepository extends JpaRepository<Country, UUID> {
     @Query("SELECT c FROM Country c WHERE LOWER(c.nameOfCounty) LIKE LOWER(CONCAT('%', :keyword, '%')) ORDER BY c.nameOfCounty")
     List<Country> findByNameOfCountyContainingIgnoreCase(@Param("keyword") String keyword);
 
+    @Query("SELECT c FROM Country c WHERE " +
+           "LOWER(c.nameOfCounty) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+           "LOWER(c.serbianName) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+           "ORDER BY c.nameOfCounty")
+    List<Country> findByNameOrSerbianNameContainingIgnoreCase(@Param("keyword") String keyword);
+
+    @Query(value = "SELECT * FROM countries c WHERE " +
+           "LOWER(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(" +
+           "c.name_of_county, 'č', 'c'), 'ć', 'c'), 'đ', 'd'), 'š', 's'), 'ž', 'z'), 'Č', 'C'), 'Ć', 'C'), 'Đ', 'D'), 'Š', 'S'), 'Ž', 'Z')) " +
+           "LIKE LOWER(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(" +
+           "CONCAT('%', :keyword, '%'), 'č', 'c'), 'ć', 'c'), 'đ', 'd'), 'š', 's'), 'ž', 'z'), 'Č', 'C'), 'Ć', 'C'), 'Đ', 'D'), 'Š', 'S'), 'Ž', 'Z')) OR " +
+           "LOWER(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(" +
+           "c.serbian_name, 'č', 'c'), 'ć', 'c'), 'đ', 'd'), 'š', 's'), 'ž', 'z'), 'Č', 'C'), 'Ć', 'C'), 'Đ', 'D'), 'Š', 'S'), 'Ž', 'Z')) " +
+           "LIKE LOWER(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(" +
+           "CONCAT('%', :keyword, '%'), 'č', 'c'), 'ć', 'c'), 'đ', 'd'), 'š', 's'), 'ž', 'z'), 'Č', 'C'), 'Ć', 'C'), 'Đ', 'D'), 'Š', 'S'), 'Ž', 'Z')) " +
+           "ORDER BY c.name_of_county", 
+           nativeQuery = true)
+    List<Country> findByNormalizedNameOrSerbianNameContainingIgnoreCase(@Param("keyword") String keyword);
+
     
     @Query(
             value = "SELECT DISTINCT c.* " +

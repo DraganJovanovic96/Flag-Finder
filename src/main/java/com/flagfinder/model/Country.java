@@ -17,6 +17,12 @@ public class Country extends  BaseEntity {
     @Column
     private String nameOfCounty;
 
+    @Column
+    private String serbianName;
+
+    @Column(name = "country_code_alpha2")
+    private String cca2;
+
     @Column(name = "flag_image", columnDefinition = "BYTEA")
     private byte[] flagImage;
 

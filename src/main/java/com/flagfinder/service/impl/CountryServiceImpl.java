@@ -1,6 +1,7 @@
 package com.flagfinder.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.flagfinder.dto.BilingualCountrySearchDto;
 import com.flagfinder.dto.CountryCreateDto;
 import com.flagfinder.dto.CountrySearchDto;
 import com.flagfinder.dto.RestCountryDto;
@@ -32,6 +33,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
@@ -127,9 +129,39 @@ public class CountryServiceImpl implements CountryService {
     }
 
     @Override
+    public List<BilingualCountrySearchDto> searchCountriesBilingualByPrefix(String prefix, int limit) {
+        try {
+            if (prefix == null || prefix.trim().isEmpty()) {
+                throw new RuntimeException("Search prefix cannot be empty");
+            }
+
+            String trimmedPrefix = prefix.trim();
+            java.util.Set<Country> uniqueResults = new java.util.LinkedHashSet<>();
+            
+            List<Country> originalResults = countryRepository.findByNameOrSerbianNameContainingIgnoreCase(trimmedPrefix);
+            uniqueResults.addAll(originalResults);
+            
+            List<Country> normalizedResults = countryRepository.findByNormalizedNameOrSerbianNameContainingIgnoreCase(trimmedPrefix);
+            uniqueResults.addAll(normalizedResults);
+
+            return uniqueResults.stream()
+                    .limit(limit)
+                    .map(country -> new BilingualCountrySearchDto(
+                            country.getId(), 
+                            country.getNameOfCounty(), 
+                            country.getSerbianName()
+                    ))
+                    .toList();
+        } catch (Exception e) {
+            log.error("Failed to search countries bilingually with prefix: {}", prefix, e);
+            throw new RuntimeException("Failed to search countries bilingually: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
     public String loadCountriesFromRestApi() {
         try {
-            String apiUrl = "https://restcountries.com/v3.1/all?fields=name,flags,continents";
+            String apiUrl = "https://restcountries.com/v3.1/all?fields=name,flags,continents,cca2";
 
             ResponseEntity<List<RestCountryDto>> response = restTemplate.exchange(
                     apiUrl,
@@ -200,6 +232,11 @@ public class CountryServiceImpl implements CountryService {
                            List<Continent> continents = new ArrayList<>();
                            continents.add(Continent.USA_STATE);
                            country.setNameOfCounty(name);
+                           
+                           String stateCode = code.substring(3).toUpperCase();
+                           country.setCca2(stateCode);
+                           country.setSerbianName(translateStateToSerbianLatin(stateCode));
+                           
                            byte[] flagImageBytes = null;
                            try {
                                flagImageBytes = downloadImageFromUrl(flagUrl);
@@ -230,6 +267,9 @@ public class CountryServiceImpl implements CountryService {
         
         Country country = new Country();
         country.setNameOfCounty(restCountry.getName().getCommon());
+        
+        country.setCca2(restCountry.getCca2());
+        country.setSerbianName(translateToSerbianLatin(restCountry.getCca2()));
         
         List<Continent> continents = new ArrayList<>();
         if (restCountry.getContinents() != null) {
@@ -273,6 +313,85 @@ public class CountryServiceImpl implements CountryService {
             case "AUSTRALIA", "OCEANIA" -> Continent.AUSTRALIA;
             default -> {
                 log.warn("Unknown continent name: {}", continentName);
+                yield null;
+            }
+        };
+    }
+
+    private String translateToSerbianLatin(String isoCode) {
+        if (isoCode == null || isoCode.isEmpty()) {
+            return null;
+        }
+
+        try {
+            Locale countryLocale = new Locale("", isoCode.toUpperCase());
+            Locale serbianLatin = new Locale.Builder().setLanguage("sr").setScript("Latn").build();
+            return countryLocale.getDisplayCountry(serbianLatin);
+        } catch (Exception e) {
+            log.debug("Failed to translate country code {} to Serbian: {}", isoCode, e.getMessage());
+            return null;
+        }
+    }
+
+    private String translateStateToSerbianLatin(String stateCode) {
+        if (stateCode == null || stateCode.isEmpty()) {
+            return null;
+        }
+        
+        return switch (stateCode.toUpperCase()) {
+            case "AL" -> "Alabama";
+            case "AK" -> "Aljaska";
+            case "AZ" -> "Arizona";
+            case "AR" -> "Arkanzas";
+            case "CA" -> "Kalifornija";
+            case "CO" -> "Kolorado";
+            case "CT" -> "Konektikut";
+            case "DE" -> "Delaver";
+            case "FL" -> "Florida";
+            case "GA" -> "Džordžija";
+            case "HI" -> "Havaji";
+            case "ID" -> "Ajdaho";
+            case "IL" -> "Ilinois";
+            case "IN" -> "Indijana";
+            case "IA" -> "Ajova";
+            case "KS" -> "Kanzas";
+            case "KY" -> "Kentaki";
+            case "LA" -> "Lujzijana";
+            case "ME" -> "Mejn";
+            case "MD" -> "Merilend";
+            case "MA" -> "Masačusets";
+            case "MI" -> "Mičigen";
+            case "MN" -> "Minesota";
+            case "MS" -> "Misisipi";
+            case "MO" -> "Misuri";
+            case "MT" -> "Montana";
+            case "NE" -> "Nebraska";
+            case "NV" -> "Nevada";
+            case "NH" -> "Nju Hempšir";
+            case "NJ" -> "Nju Džerzi";
+            case "NM" -> "Nju Meksiko";
+            case "NY" -> "Njujork";
+            case "NC" -> "Severna Karolina";
+            case "ND" -> "Severna Dakota";
+            case "OH" -> "Ohajo";
+            case "OK" -> "Oklahoma";
+            case "OR" -> "Oregon";
+            case "PA" -> "Pensilvanija";
+            case "RI" -> "Rod Ajlend";
+            case "SC" -> "Južna Karolina";
+            case "SD" -> "Južna Dakota";
+            case "TN" -> "Tenesi";
+            case "TX" -> "Teksas";
+            case "UT" -> "Juta";
+            case "VT" -> "Vermont";
+            case "VA" -> "Virdžinija";
+            case "WA" -> "Vašington";
+            case "WV" -> "Zapadna Virdžinija";
+            case "WI" -> "Viskonsin";
+            case "WY" -> "Vajoming";
+            case "DC" -> "Distrikt Kolumbija";
+            default -> {
+                log.debug("No Serbian translation found for state code: {}", stateCode);
                 yield null;
             }
         };
