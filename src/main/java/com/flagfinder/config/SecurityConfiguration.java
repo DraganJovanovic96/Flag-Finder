@@ -111,6 +111,12 @@ public class SecurityConfiguration {
                         .requestMatchers(DELETE, "/api/v1/users").hasAnyAuthority(ADMIN_DELETE.name())
                         .requestMatchers(PUT, "/api/v1/users").hasAnyAuthority(ADMIN_UPDATE.name(),USER_UPDATE.name())
 
+                        .requestMatchers("/api/v1/countries/load-countries-api").hasAnyRole(ADMIN.name())
+                        .requestMatchers(POST, "/api/v1/countries/load-countries-api").hasAnyAuthority(ADMIN_CREATE.name())
+                        .requestMatchers("/api/v1/countries/load-us-states-api").hasAnyRole(ADMIN.name())
+                        .requestMatchers(POST, "/api/v1/countries/load-us-states-api").hasAnyAuthority(ADMIN_CREATE.name())
+                        .requestMatchers(DELETE, "/api/v1/countries/*").hasAnyAuthority(ADMIN_DELETE.name())
+
                         .anyRequest()
                         .authenticated()
                 )
