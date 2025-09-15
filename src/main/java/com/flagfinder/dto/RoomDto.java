@@ -10,6 +10,7 @@ public class RoomDto extends BaseEntityDto {
     private String hostUserName;
     private String guestUserName;
     private RoomStatus status;
+    private Integer numberOfRounds;
     private LocalDateTime gameStartedAt;
     private LocalDateTime gameEndedAt;
 }

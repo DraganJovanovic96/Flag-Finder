@@ -141,7 +141,7 @@ public class GameServiceImpl implements GameService {
         game.setStatus(GameStatus.IN_PROGRESS);
         game.setStartedAt(LocalDateTime.now());
         game.setContinents(continents != null ? continents : new ArrayList<>());
-        game.setTotalRounds(TOTAL_ROUNDS);
+        game.setTotalRounds(room.getNumberOfRounds());
         
         Game savedGame = gameRepository.save(game);
         
@@ -198,7 +198,7 @@ public class GameServiceImpl implements GameService {
         singlePlayerGame.setStatus(GameStatus.IN_PROGRESS);
         singlePlayerGame.setStartedAt(LocalDateTime.now());
         singlePlayerGame.setContinents(continents != null ? continents : new ArrayList<>());
-        singlePlayerGame.setTotalRounds(TOTAL_ROUNDS);
+        singlePlayerGame.setTotalRounds(singlePlayerRoom.getNumberOfRounds());
 
         singlePlayerGameRepository.save(singlePlayerGame);
 
@@ -488,9 +488,9 @@ public class GameServiceImpl implements GameService {
     }
     
     private void endCurrentRound(Game game, int roundNumber) {
-        log.info("Ending round {} for game {}, total rounds: {}", roundNumber, game.getId(), TOTAL_ROUNDS);
+        log.info("Ending round {} for game {}, total rounds: {}", roundNumber, game.getId(), game.getTotalRounds());
         
-        if (roundNumber < TOTAL_ROUNDS) {
+        if (roundNumber < game.getTotalRounds()) {
             log.info("Starting new round {} for game {}", roundNumber + 1, game.getId());
             startNewRound(game, roundNumber + 1, game.getContinents());
         } else {
@@ -529,9 +529,9 @@ public class GameServiceImpl implements GameService {
     }
     
     private void endCurrentSinglePlayerRound(SinglePlayerGame singlePlayerGame, int roundNumber) {
-        log.info("Ending single player round {} for game {}, total rounds: {}", roundNumber, singlePlayerGame.getId(), TOTAL_ROUNDS);
+        log.info("Ending single player round {} for game {}, total rounds: {}", roundNumber, singlePlayerGame.getId(), singlePlayerGame.getTotalRounds());
         
-        if (roundNumber < TOTAL_ROUNDS) {
+        if (roundNumber < singlePlayerGame.getTotalRounds()) {
             log.info("Starting new single player round {} for game {}", roundNumber + 1, singlePlayerGame.getId());
             startNewSinglePlayerRound(singlePlayerGame, roundNumber + 1, singlePlayerGame.getContinents());
         } else {
@@ -590,7 +590,7 @@ public class GameServiceImpl implements GameService {
     }
 
     private boolean shouldEndRound(Round round) {
-        return round.getGuesses().size() >= TOTAL_ROUNDS;
+        return round.getGuesses().size() >= 2; // Both players have guessed
     }
 
     private void populateCurrentRoundData(GameDto dto, Game game) {
@@ -796,7 +796,7 @@ public class GameServiceImpl implements GameService {
         java.util.concurrent.Executors.newSingleThreadScheduledExecutor().schedule(() -> {
             transactionTemplate.execute(status -> {
                 try {
-                    if (currentRoundNumber < TOTAL_ROUNDS) {
+                    if (currentRoundNumber < singlePlayerGame.getTotalRounds()) {
                         SinglePlayerGame game = singlePlayerGameRepository.findByIdWithRelations(gameId)
                                 .orElse(null);
                         if (game != null && game.getStatus() == GameStatus.IN_PROGRESS) {

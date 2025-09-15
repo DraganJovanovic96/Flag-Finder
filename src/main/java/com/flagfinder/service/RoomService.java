@@ -9,12 +9,12 @@ public interface RoomService {
     /**
      * Creates a new room for the specified host
      */
-    RoomDto createRoom();
+    RoomDto createRoom(CreateRoomRequestDto request);
 
     /**
-     * Creates a new room for the specified host
+     * Creates a new single player room for the specified host
      */
-    SinglePlayerRoomDto createSinglePlayerRoom();
+    SinglePlayerRoomDto createSinglePlayerRoom(CreateSinglePlayerRoomRequestDto request);
     
     /**
      * Joins a room as a guest
@@ -32,4 +32,9 @@ public interface RoomService {
      * Retrieves room details by id
      */
     RoomDto getRoomById(UUID id);
+
+    /**
+     * Updates the number of rounds for a room
+     */
+    RoomDto updateRounds(UUID roomId, UpdateRoundsRequestDto request);
 }

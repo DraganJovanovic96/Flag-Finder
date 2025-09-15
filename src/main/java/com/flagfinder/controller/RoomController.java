@@ -20,17 +20,17 @@ public class RoomController {
      * Creates a new room
      */
     @PostMapping("/create")
-    public ResponseEntity<RoomDto> createRoom() {
-        RoomDto roomDto = roomService.createRoom();
+    public ResponseEntity<RoomDto> createRoom(@RequestBody CreateRoomRequestDto request) {
+        RoomDto roomDto = roomService.createRoom(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(roomDto);
     }
 
     /**
-     * Creates a new room
+     * Creates a new single player room
      */
     @PostMapping("/create-single-player-room")
-    public ResponseEntity<SinglePlayerRoomDto> createSinglePlayerRoom() {
-        SinglePlayerRoomDto singlePlayerRoomDto = roomService.createSinglePlayerRoom();
+    public ResponseEntity<SinglePlayerRoomDto> createSinglePlayerRoom(@RequestBody CreateSinglePlayerRoomRequestDto request) {
+        SinglePlayerRoomDto singlePlayerRoomDto = roomService.createSinglePlayerRoom(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(singlePlayerRoomDto);
     }
 
@@ -71,5 +71,14 @@ public class RoomController {
     @GetMapping("/{id}")
     public ResponseEntity<RoomDto> getRoom(@PathVariable("id") java.util.UUID id) {
         return ResponseEntity.ok(roomService.getRoomById(id));
+    }
+
+    /**
+     * Update number of rounds for a room
+     */
+    @PutMapping("/{id}/rounds")
+    public ResponseEntity<RoomDto> updateRounds(@PathVariable("id") java.util.UUID id, @RequestBody UpdateRoundsRequestDto request) {
+        RoomDto roomDto = roomService.updateRounds(id, request);
+        return ResponseEntity.ok(roomDto);
     }
 }

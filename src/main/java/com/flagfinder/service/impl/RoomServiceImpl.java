@@ -39,7 +39,7 @@ public class RoomServiceImpl implements RoomService {
 
 
     @Override
-    public RoomDto createRoom() {
+    public RoomDto createRoom(CreateRoomRequestDto request) {
         User host = userRepository.findByEmail(extractAuthenticatedUserService.getAuthenticatedUser())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, USER_NOT_PRESENT));
 
@@ -55,13 +55,14 @@ public class RoomServiceImpl implements RoomService {
         Room room = new Room();
         room.setHost(host);
         room.setStatus(RoomStatus.WAITING_FOR_GUEST);
+        room.setNumberOfRounds(request.getNumberOfRounds() != null ? request.getNumberOfRounds() : 5);
         roomRepository.save(room);
 
         return roomMapper.roomToRoomDtoMapper(room);
     }
 
     @Override
-    public SinglePlayerRoomDto createSinglePlayerRoom() {
+    public SinglePlayerRoomDto createSinglePlayerRoom(CreateSinglePlayerRoomRequestDto request) {
         User host = userRepository.findByEmail(extractAuthenticatedUserService.getAuthenticatedUser())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, USER_NOT_PRESENT));
 
@@ -71,6 +72,7 @@ public class RoomServiceImpl implements RoomService {
         SinglePlayerRoom singlePlayerRoom = new SinglePlayerRoom();
         singlePlayerRoom.setHost(host);
         singlePlayerRoom.setStatus(RoomStatus.WAITING_FOR_GUEST);
+        singlePlayerRoom.setNumberOfRounds(request.getNumberOfRounds() != null ? request.getNumberOfRounds() : 5);
         singlePlayerRoomRepository.save(singlePlayerRoom);
 
         return singlePlayerRoomMapper.singlePlayerRoomToSinglePlayerRoomDto(singlePlayerRoom);
@@ -212,6 +214,44 @@ public class RoomServiceImpl implements RoomService {
     public RoomDto getRoomById(UUID id) {
         Room room = roomRepository.findOneById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Room doesn't exist"));
+        return roomMapper.roomToRoomDtoMapper(room);
+    }
+
+    @Override
+    public RoomDto updateRounds(UUID roomId, UpdateRoundsRequestDto request) {
+        User user = userRepository.findByEmail(extractAuthenticatedUserService.getAuthenticatedUser())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, USER_NOT_PRESENT));
+
+        Room room = roomRepository.findOneById(roomId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Room doesn't exist"));
+
+        // Only the host can update rounds
+        if (!room.getHost().equals(user)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the host can update room settings");
+        }
+
+        // Only allow updates if room is waiting for guest or ready to start
+        if (room.getStatus() != RoomStatus.WAITING_FOR_GUEST && room.getStatus() != RoomStatus.ROOM_READY_FOR_START) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot update rounds for a room that is already in progress");
+        }
+
+        room.setNumberOfRounds(request.getNumberOfRounds());
+        roomRepository.save(room);
+
+        // Notify guest if present
+        if (room.getGuest() != null) {
+            try {
+                var roomDto = roomMapper.roomToRoomDtoMapper(room);
+                messagingTemplate.convertAndSendToUser(
+                        room.getGuest().getGameName(),
+                        "/queue/room-updates",
+                        roomDto
+                );
+            } catch (Exception e) {
+                log.warn("Failed to send room update to guest {}: {}", room.getGuest().getGameName(), e.getMessage());
+            }
+        }
+
         return roomMapper.roomToRoomDtoMapper(room);
     }
 

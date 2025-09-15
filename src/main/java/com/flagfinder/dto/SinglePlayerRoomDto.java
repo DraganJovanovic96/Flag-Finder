@@ -8,6 +8,7 @@ import java.time.LocalDateTime;
 public class SinglePlayerRoomDto extends BaseEntityDto{
     private String hostUserName;
     private RoomStatus status;
+    private Integer numberOfRounds;
     private LocalDateTime gameStartedAt;
     private LocalDateTime gameEndedAt;
 }
