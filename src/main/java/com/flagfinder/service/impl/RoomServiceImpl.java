@@ -106,7 +106,6 @@ public class RoomServiceImpl implements RoomService {
                     roomDto
             );
         } catch (Exception e) {
-            log.warn("Failed to send room update to host {}: {}", room.getHost().getGameName(), e.getMessage());
         }
         return roomMapper.roomToRoomDtoMapper(room);
     }
@@ -191,7 +190,6 @@ public class RoomServiceImpl implements RoomService {
                             roomClosedDto
                     );
                 } catch (Exception e) {
-                    log.warn("Failed to notify guest {} about room close: {}", room.getGuest().getGameName(), e.getMessage());
                 }
             }
             roomRepository.delete(room);
@@ -209,7 +207,6 @@ public class RoomServiceImpl implements RoomService {
                     roomDto
             );
         } catch (Exception e) {
-            log.warn("Failed to send room update to host after guest left: {}", e.getMessage());
         }
     }
 
@@ -228,12 +225,10 @@ public class RoomServiceImpl implements RoomService {
         Room room = roomRepository.findOneById(roomId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Room doesn't exist"));
 
-        // Only the host can update rounds
         if (!room.getHost().equals(user)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the host can update room settings");
         }
 
-        // Only allow updates if room is waiting for guest or ready to start
         if (room.getStatus() != RoomStatus.WAITING_FOR_GUEST && room.getStatus() != RoomStatus.ROOM_READY_FOR_START) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot update rounds for a room that is already in progress");
         }
@@ -241,7 +236,6 @@ public class RoomServiceImpl implements RoomService {
         room.setNumberOfRounds(request.getNumberOfRounds());
         roomRepository.save(room);
 
-        // Notify guest if present
         if (room.getGuest() != null) {
             try {
                 var roomDto = roomMapper.roomToRoomDtoMapper(room);
@@ -251,7 +245,6 @@ public class RoomServiceImpl implements RoomService {
                         roomDto
                 );
             } catch (Exception e) {
-                log.warn("Failed to send room update to guest {}: {}", room.getGuest().getGameName(), e.getMessage());
             }
         }
 

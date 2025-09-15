@@ -111,9 +111,7 @@ public class AuthenticationService {
         String token = generateVerificationCode();
         user.setVerificationCode(passwordEncoder.encode(token));
         user.setVerificationExpiration(LocalDateTime.now().plusHours(3));
-        //todo change enabled status and send verification
         user.setEnabled(true);
-//        sendVerificationEmail(token, user.getEmail());
         var savedUser = repository.save(user);
         Map<String, Object> extraClaims = new HashMap<>();
         extraClaims.put("gameName", user.getGameName());

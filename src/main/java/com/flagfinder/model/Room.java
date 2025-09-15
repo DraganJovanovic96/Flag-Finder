@@ -27,7 +27,7 @@ public class Room extends BaseEntity {
     private RoomStatus status;
     
     @Column(name = "number_of_rounds")
-    private Integer numberOfRounds = 5; // Default to 5 rounds
+    private Integer numberOfRounds = 5;
     
     @OneToOne(mappedBy = "room")
     private Game game;

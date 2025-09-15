@@ -161,7 +161,6 @@ public class GameServiceImpl implements GameService {
                     gameDto
             );
         } catch (Exception e) {
-            log.error("Failed to send game-started notification to host {}: {}", room.getHost().getGameName(), e.getMessage(), e);
         }
         
         try {
@@ -171,7 +170,6 @@ public class GameServiceImpl implements GameService {
                     gameDto
             );
         } catch (Exception e) {
-            log.error("Failed to send game-started notification to guest {}: {}", room.getGuest().getGameName(), e.getMessage(), e);
         }
         
         return gameDto;
@@ -218,7 +216,6 @@ public class GameServiceImpl implements GameService {
                     singlePlayerGameDto
             );
         } catch (Exception e) {
-            log.error("Failed to send game-started notification to host {}: {}", singlePlayerRoom.getHost().getGameName(), e.getMessage(), e);
         }
 
         return singlePlayerGameDto;
@@ -282,10 +279,8 @@ public class GameServiceImpl implements GameService {
             updateScore(game, currentUser);
         }
 
-        log.info("Round {} has {} guesses", currentRound.getRoundNumber(), currentRound.getGuesses().size());
         
         if (currentRound.getGuesses().size() >= 2 || shouldEndRound(currentRound)) {
-            log.info("Ending round {} - both players guessed or timeout", currentRound.getRoundNumber());
             Hibernate.initialize(game.getUsers());
             Hibernate.initialize(game.getRounds());
             if (game.getRoom() != null) {
@@ -293,7 +288,6 @@ public class GameServiceImpl implements GameService {
             }
             endCurrentRound(game, currentRound.getRoundNumber());
         } else {
-            log.info("Round {} continues - only {} guesses so far", currentRound.getRoundNumber(), currentRound.getGuesses().size());
         }
 
         GameDto gameDto = gameMapper.gameToGameDto(gameRepository.save(game));
@@ -345,7 +339,6 @@ public class GameServiceImpl implements GameService {
         
         game.setStatus(GameStatus.COMPLETED);
         game.setEndedAt(LocalDateTime.now());
-        log.info("Game {} set to COMPLETED status", gameId);
 
         if (game.getHostScore() > game.getGuestScore()) {
             game.setWinnerUserName(game.getUsers().get(0).getGameName());
@@ -370,7 +363,6 @@ public class GameServiceImpl implements GameService {
                     gameDto
             );
         } catch (Exception e) {
-            log.error("Failed to send game-ended notification to host {}: {}", room.getHost().getGameName(), e.getMessage(), e);
         }
         
         try {
@@ -380,14 +372,12 @@ public class GameServiceImpl implements GameService {
                     gameDto
             );
         } catch (Exception e) {
-            log.error("Failed to send game-ended notification to guest {}: {}", room.getGuest().getGameName(), e.getMessage(), e);
         }
         
         return gameDto;
     }
     
     private void startNewRound(Game game, int roundNumber, List<com.flagfinder.enumeration.Continent> continents) {
-        log.info("Starting new round {} for game {} with continents: {}", roundNumber, game.getId(), continents);
         
         Country randomCountry;
         if (continents != null && !continents.isEmpty()) {
@@ -401,10 +391,8 @@ public class GameServiceImpl implements GameService {
         round.setCountry(randomCountry);
         round.setRoundNumber(roundNumber);
         
-        log.info("Cancelling existing timers for game {}", game.getId());
         gameTimerService.cancelGameTimers(game.getId());
         roundRepository.save(round);
-        log.info("Starting timer for game {} round {} with duration {} seconds", game.getId(), roundNumber, ROUND_DURATION_SECONDS);
         gameTimerService.startRoundTimer(game.getId(), roundNumber, ROUND_DURATION_SECONDS);
         
         Game refreshedGame = gameRepository.findByIdWithRelations(game.getId())
@@ -420,17 +408,13 @@ public class GameServiceImpl implements GameService {
         populateCurrentRoundData(gameDto, refreshedGame);
         Room room = refreshedGame.getRoom();
 
-        log.info("Sending WebSocket notifications for round {} start to host {} and guest {}",
-                roundNumber, room.getHost().getGameName(), room.getGuest().getGameName());
         try {
             messagingTemplate.convertAndSendToUser(
                     room.getHost().getGameName(),
                     QUEUE_ROUND_STARTED,
                     gameDto
             );
-            log.info("Successfully sent round-started notification to host {} for round {}", room.getHost().getGameName(), roundNumber);
         } catch (Exception e) {
-            log.error("Failed to send round-started notification to host {}: {}", room.getHost().getGameName(), e.getMessage(), e);
         }
         
         try {
@@ -439,9 +423,7 @@ public class GameServiceImpl implements GameService {
                     QUEUE_ROUND_STARTED,
                     gameDto
             );
-            log.info("Successfully sent round-started notification to guest {} for round {}", room.getGuest().getGameName(), roundNumber);
         } catch (Exception e) {
-            log.error("Failed to send round-started notification to guest {}: {}", room.getGuest().getGameName(), e.getMessage(), e);
         }
     }
 
@@ -483,25 +465,20 @@ public class GameServiceImpl implements GameService {
                     singlePlayerGameDto
             );
         } catch (Exception e) {
-            log.error("Failed to send round-started notification to host {}: {}", singlePlayerRoom.getHost().getGameName(), e.getMessage(), e);
         }
     }
     
     private void endCurrentRound(Game game, int roundNumber) {
-        log.info("Ending round {} for game {}, total rounds: {}", roundNumber, game.getId(), game.getTotalRounds());
         
         if (roundNumber < game.getTotalRounds()) {
-            log.info("Starting new round {} for game {}", roundNumber + 1, game.getId());
             startNewRound(game, roundNumber + 1, game.getContinents());
         } else {
-            log.info("Final round completed, ending game {}", game.getId());
             endGame(game.getId());
         }
     }
     @Transactional
     public void handleRoundTimeout(UUID gameId, Integer roundNumber) {
         try {
-            log.info("Handling timeout for game {} round {}", gameId, roundNumber);
             
             Game game = gameRepository.findByIdWithRelations(gameId).orElse(null);
             if (game != null && game.getStatus() == GameStatus.IN_PROGRESS) {
@@ -524,24 +501,19 @@ public class GameServiceImpl implements GameService {
                 endCurrentSinglePlayerRound(singlePlayerGame, roundNumber);
             }
         } catch (Exception e) {
-            log.error("Error handling round timeout for game {} round {}", gameId, roundNumber, e);
         }
     }
     
     private void endCurrentSinglePlayerRound(SinglePlayerGame singlePlayerGame, int roundNumber) {
-        log.info("Ending single player round {} for game {}, total rounds: {}", roundNumber, singlePlayerGame.getId(), singlePlayerGame.getTotalRounds());
         
         if (roundNumber < singlePlayerGame.getTotalRounds()) {
-            log.info("Starting new single player round {} for game {}", roundNumber + 1, singlePlayerGame.getId());
             startNewSinglePlayerRound(singlePlayerGame, roundNumber + 1, singlePlayerGame.getContinents());
         } else {
-            log.info("Final single player round completed, ending game {}", singlePlayerGame.getId());
             endSinglePlayerGame(singlePlayerGame.getId());
         }
     }
     
     private void endSinglePlayerGame(UUID gameId) {
-        log.info("Ending single player game {}", gameId);
         
         SinglePlayerGame singlePlayerGame = singlePlayerGameRepository.findByIdWithRelations(gameId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Single player game not found"));
@@ -554,7 +526,6 @@ public class GameServiceImpl implements GameService {
         
         singlePlayerGame.setStatus(GameStatus.COMPLETED);
         singlePlayerGame.setEndedAt(LocalDateTime.now());
-        log.info("Single player game {} set to COMPLETED status", gameId);
 
         SinglePlayerRoom singlePlayerRoom = singlePlayerGame.getSinglePlayerRoom();
         if (singlePlayerRoom != null) {
@@ -573,11 +544,7 @@ public class GameServiceImpl implements GameService {
                     QUEUE_GAME_ENDED,
                     singlePlayerGameDto
             );
-            log.info("Successfully sent game-ended notification to host {} for single player game {}", 
-                    singlePlayerRoom.getHost().getGameName(), gameId);
         } catch (Exception e) {
-            log.error("Failed to send game-ended notification to host {}: {}", 
-                    singlePlayerRoom.getHost().getGameName(), e.getMessage(), e);
         }
     }
 

@@ -62,14 +62,12 @@ public class CountryServiceImpl implements CountryService {
                     byte[] imageBytes = downloadImageFromUrl(countryCreateDto.getImageUrl());
                     country.setFlagImage(imageBytes);
                 } catch (Exception e) {
-                    log.error("Failed to download image from URL: {}", countryCreateDto.getImageUrl(), e);
                     throw new RuntimeException("Failed to download flag image", e);
                 }
             }
 
             return countryRepository.save(country);
         } catch (Exception e) {
-            log.error("Failed to create country", e);
             throw new RuntimeException("Failed to create country: " + e.getMessage(), e);
         }
     }
@@ -128,7 +126,6 @@ public class CountryServiceImpl implements CountryService {
                     .map(country -> new CountrySearchDto(country.getId(), country.getNameOfCounty()))
                     .toList();
         } catch (Exception e) {
-            log.error("Failed to search countries with prefix: {}", prefix, e);
             throw new RuntimeException("Failed to search countries: " + e.getMessage(), e);
         }
     }
@@ -158,7 +155,6 @@ public class CountryServiceImpl implements CountryService {
                     ))
                     .toList();
         } catch (Exception e) {
-            log.error("Failed to search countries bilingually with prefix: {}", prefix, e);
             throw new RuntimeException("Failed to search countries bilingually: " + e.getMessage(), e);
         }
     }
@@ -178,11 +174,9 @@ public class CountryServiceImpl implements CountryService {
 
             List<RestCountryDto> restCountries = response.getBody();
             if (restCountries == null || restCountries.isEmpty()) {
-                log.warn("No countries received from REST Countries API");
                 return "No countries received from REST Countries API";
             }
 
-            log.info("Received {} countries from API, processing...", restCountries.size());
 
             int savedCount = 0;
             for (RestCountryDto restCountry : restCountries) {
@@ -196,22 +190,17 @@ public class CountryServiceImpl implements CountryService {
                         if (!exists) {
                             countryRepository.save(country);
                             savedCount++;
-                            log.debug("Saved country: {}", country.getNameOfCounty());
                         } else {
-                            log.debug("Country already exists, skipping: {}", country.getNameOfCounty());
                         }
                     }
                 } catch (Exception e) {
-                    log.error("Failed to process country: {}", restCountry.getName() != null ? restCountry.getName().getCommon() : "unknown", e);
                 }
             }
 
             String successMessage = "Successfully loaded " + savedCount + " countries from REST Countries API";
-            log.info(successMessage);
             return successMessage;
 
         } catch (Exception e) {
-            log.error("Failed to load countries from REST Countries API", e);
             throw new RuntimeException("Failed to load countries from API: " + e.getMessage(), e);
         }
     }

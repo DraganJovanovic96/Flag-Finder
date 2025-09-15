@@ -47,7 +47,6 @@ public class BeaconAuthenticationFilter extends OncePerRequestFilter {
         } else {
             final String authHeader = request.getHeader("Authorization");
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                log.warn("No token found in beacon request - no token parameter and no Authorization header");
                 filterChain.doFilter(request, response);
                 return;
             }
@@ -57,7 +56,6 @@ public class BeaconAuthenticationFilter extends OncePerRequestFilter {
         try {
             userEmail = jwtService.extractUsername(token);
         } catch (Exception e) {
-            log.warn("Failed to extract username from token: {}", e.getMessage(), e);
             filterChain.doFilter(request, response);
             return;
         }

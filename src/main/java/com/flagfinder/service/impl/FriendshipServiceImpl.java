@@ -147,14 +147,11 @@ public class FriendshipServiceImpl implements FriendshipService {
 
         List<FriendshipDto> friendshipDtos = friendshipMapper.friendshipsToFriendshipDtos(friendships);
         
-        // Add online status for each friend
         for (FriendshipDto dto : friendshipDtos) {
-            // Determine which user is the friend (not the current user)
             String friendUsername = dto.getInitiatorUserName().equals(user.getGameName()) 
                 ? dto.getTargetUserName() 
                 : dto.getInitiatorUserName();
             
-            // Check if friend is online (has active WebSocket connection)
             Optional<User> friendUser = userRepository.findOneByGameNameIgnoreCase(friendUsername);
             if (friendUser.isPresent() && friendUser.get().getIsOnline() != null) {
                 dto.setOnline(friendUser.get().getIsOnline());
@@ -194,8 +191,6 @@ public class FriendshipServiceImpl implements FriendshipService {
                     notification
             );
         } catch (Exception e) {
-            // Log error but don't fail the request
-            System.err.println("Failed to send friend removal WebSocket notification: " + e.getMessage());
         }
     }
 }

@@ -30,7 +30,6 @@ public class GameTimerServiceImpl implements GameTimerService {
     public void startRoundTimer(UUID gameId, Integer roundNumber, int durationSeconds) {
         String timerKey = getTimerKey(gameId, roundNumber);
         
-        log.info("Starting timer for game {} round {} with duration {} seconds", gameId, roundNumber, durationSeconds);
         cancelRoundTimer(timerKey);
         
         roundStartTimes.put(timerKey, LocalDateTime.now());
@@ -38,27 +37,22 @@ public class GameTimerServiceImpl implements GameTimerService {
         
         ScheduledFuture<?> future = scheduler.schedule(() -> {
             try {
-                log.info("Timer expired for game {} round {}, calling handleRoundTimeout", gameId, roundNumber);
                 GameServiceImpl gameService = applicationContext.getBean(GameServiceImpl.class);
                 gameService.handleRoundTimeout(gameId, roundNumber);
             } catch (Exception e) {
-                log.error("Error handling round timeout for game {} round {}", gameId, roundNumber, e);
             }
             cleanupRoundTimer(timerKey);
         }, durationSeconds, TimeUnit.SECONDS);
         
         activeTimers.put(timerKey, future);
-        log.info("Timer scheduled successfully for game {} round {}", gameId, roundNumber);
     }
     
     @Override
     public void cancelGameTimers(UUID gameId) {
         String gamePrefix = gameId.toString() + "_";
         
-        log.info("Cancelling all timers for game {}", gameId);
         activeTimers.entrySet().removeIf(entry -> {
             if (entry.getKey().startsWith(gamePrefix)) {
-                log.info("Cancelling timer: {}", entry.getKey());
                 entry.getValue().cancel(false);
                 roundStartTimes.remove(entry.getKey());
                 roundDurations.remove(entry.getKey());
@@ -67,7 +61,6 @@ public class GameTimerServiceImpl implements GameTimerService {
             }
             return false;
         });
-        log.info("Finished cancelling timers for game {}", gameId);
     }
     
     @Override

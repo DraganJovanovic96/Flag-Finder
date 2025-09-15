@@ -25,14 +25,11 @@ public class WebSocketEventListener {
         
         if (user != null && !user.getName().equals("anonymous")) {
             String gameName = user.getName();
-            log.info("User connected: {}", gameName);
             try {
                 userService.setUserOnlineStatus(gameName, true);
             } catch (Exception e) {
-                log.warn("Failed to set online status for user {}: {}", gameName, e.getMessage());
             }
         } else {
-            log.debug("Anonymous user connected, skipping online status update");
         }
     }
 
@@ -43,14 +40,11 @@ public class WebSocketEventListener {
         
         if (user != null && !user.getName().equals("anonymous")) {
             String gameName = user.getName();
-            log.info("User disconnected: {}", gameName);
             try {
                 userService.setUserOnlineStatus(gameName, false);
             } catch (Exception e) {
-                log.warn("Failed to set offline status for user {}: {}", gameName, e.getMessage());
             }
         } else {
-            log.debug("Anonymous user disconnected, skipping online status update");
         }
     }
 }

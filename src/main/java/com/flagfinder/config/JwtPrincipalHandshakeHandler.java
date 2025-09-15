@@ -58,11 +58,9 @@ public class JwtPrincipalHandshakeHandler extends DefaultHandshakeHandler {
                         .orElse(email);
                 return () -> gameName;
             } catch (Exception e) {
-                log.warn("Failed to resolve principal from JWT in handshake: {}", e.getMessage());
             }
         }
 
-        log.warn("No JWT on WS handshake; anonymous principal assigned");
         return () -> "anonymous";
     }
 }

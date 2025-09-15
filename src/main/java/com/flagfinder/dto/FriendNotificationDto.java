@@ -11,6 +11,6 @@ import java.util.UUID;
 @NoArgsConstructor
 public class FriendNotificationDto {
     private String senderUsername;
-    private String action; // "REQUEST", "ACCEPTED", "DECLINED", "REMOVED"
+    private String action;
     private String friendshipStatus;
 }
