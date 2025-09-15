@@ -1,6 +1,7 @@
 package com.flagfinder.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.flagfinder.dto.BilingualCountrySearchDto;
 import com.flagfinder.dto.CountryCreateDto;
 import com.flagfinder.dto.CountrySearchDto;
 import com.flagfinder.dto.RestCountryDto;
@@ -32,11 +33,18 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * Implementation of CountryService interface.
+ * Provides comprehensive country management functionality including creation, deletion, search,
+ * external API integration, flag image handling, and bilingual search capabilities.
+ * Supports both regular countries and US states with proper continent mapping.
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -48,6 +56,13 @@ public class CountryServiceImpl implements CountryService {
     private final RoundRepository roundRepository;
     private final SinglePlayerRoundRepository singlePlayerRoundRepository;
 
+    /**
+     * Creates a new country from the provided DTO with image URL.
+     *
+     * @param countryCreateDto the DTO containing country information and image URL
+     * @return the created Country object
+     * @throws RuntimeException if country creation or image download fails
+     */
     @Override
     public Country createCountryFromImageUrl(CountryCreateDto countryCreateDto) {
         try {
@@ -60,23 +75,33 @@ public class CountryServiceImpl implements CountryService {
                     byte[] imageBytes = downloadImageFromUrl(countryCreateDto.getImageUrl());
                     country.setFlagImage(imageBytes);
                 } catch (Exception e) {
-                    log.error("Failed to download image from URL: {}", countryCreateDto.getImageUrl(), e);
                     throw new RuntimeException("Failed to download flag image", e);
                 }
             }
 
             return countryRepository.save(country);
         } catch (Exception e) {
-            log.error("Failed to create country", e);
             throw new RuntimeException("Failed to create country: " + e.getMessage(), e);
         }
     }
 
+    /**
+     * Deletes a country by its name and cleans up all related data.
+     *
+     * @param countryName the name of the country to delete
+     * @throws ResponseStatusException if the country is not found
+     */
     @Override
     @Transactional
     public void deleteCountryByName(String countryName) {
         Country country = countryRepository.findByNameOfCountyIgnoreCase(countryName)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Country not found"));
+
+        List<SinglePlayerRound> singlePlayerRoundsWithCountry = singlePlayerRoundRepository.findByCountry(country);
+        for (SinglePlayerRound singlePlayerRound : singlePlayerRoundsWithCountry) {
+            singlePlayerRound.setGuess(null);
+            singlePlayerRoundRepository.save(singlePlayerRound);
+        }
 
         guessRepository.deleteByGuessedCountry(country);
         
@@ -85,7 +110,6 @@ public class CountryServiceImpl implements CountryService {
             guessRepository.deleteByRound(round);
         }
         
-        List<SinglePlayerRound> singlePlayerRoundsWithCountry = singlePlayerRoundRepository.findByCountry(country);
         for (SinglePlayerRound singlePlayerRound : singlePlayerRoundsWithCountry) {
             guessRepository.deleteBySinglePlayerRound(singlePlayerRound);
         }
@@ -96,17 +120,37 @@ public class CountryServiceImpl implements CountryService {
         countryRepository.delete(country);
     }
 
+    /**
+     * Retrieves all countries from the database.
+     *
+     * @return a list of all Country objects
+     */
     @Override
     public List<Country> getAllCountries() {
         return countryRepository.findAll();
     }
 
+    /**
+     * Retrieves a country by its unique identifier.
+     *
+     * @param id the unique UUID identifier of the country
+     * @return the Country object
+     * @throws RuntimeException if the country is not found
+     */
     @Override
     public Country getCountryById(UUID id) {
         return countryRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Country not found with ID: " + id));
     }
 
+    /**
+     * Searches for countries by name prefix with a specified limit.
+     *
+     * @param prefix the search prefix to match country names
+     * @param limit the maximum number of results to return
+     * @return a list of CountrySearchDto objects matching the prefix
+     * @throws RuntimeException if the search fails or prefix is empty
+     */
     @Override
     public List<CountrySearchDto> searchCountriesByPrefix(String prefix, int limit) {
         try {
@@ -121,15 +165,59 @@ public class CountryServiceImpl implements CountryService {
                     .map(country -> new CountrySearchDto(country.getId(), country.getNameOfCounty()))
                     .toList();
         } catch (Exception e) {
-            log.error("Failed to search countries with prefix: {}", prefix, e);
             throw new RuntimeException("Failed to search countries: " + e.getMessage(), e);
         }
     }
 
+    /**
+     * Searches for countries by name prefix in both English and Serbian with a specified limit.
+     *
+     * @param prefix the search prefix to match country names in either language
+     * @param limit the maximum number of results to return
+     * @return a list of BilingualCountrySearchDto objects matching the prefix
+     * @throws RuntimeException if the search fails or prefix is empty
+     */
+    @Override
+    public List<BilingualCountrySearchDto> searchCountriesBilingualByPrefix(String prefix, int limit) {
+        try {
+            if (prefix == null || prefix.trim().isEmpty()) {
+                throw new RuntimeException("Search prefix cannot be empty");
+            }
+
+            String trimmedPrefix = prefix.trim();
+            java.util.Set<Country> uniqueResults = new java.util.LinkedHashSet<>();
+            
+            List<Country> originalResults = countryRepository.findByNameOrSerbianNameContainingIgnoreCase(trimmedPrefix);
+            uniqueResults.addAll(originalResults);
+            
+            List<Country> normalizedResults = countryRepository.findByNormalizedNameOrSerbianNameContainingIgnoreCase(trimmedPrefix);
+            uniqueResults.addAll(normalizedResults);
+
+            return uniqueResults.stream()
+                    .limit(limit)
+                    .map(country -> new BilingualCountrySearchDto(
+                            country.getId(), 
+                            country.getNameOfCounty(), 
+                            country.getSerbianName()
+                    ))
+                    .toList();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to search countries bilingually: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Loads countries from the REST Countries API and saves them to the database.
+     * Fetches country data including names, flags, continents, and country codes.
+     * Skips countries that already exist in the database.
+     *
+     * @return success message with count of loaded countries
+     * @throws RuntimeException if API call fails or data processing fails
+     */
     @Override
     public String loadCountriesFromRestApi() {
         try {
-            String apiUrl = "https://restcountries.com/v3.1/all?fields=name,flags,continents";
+            String apiUrl = "https://restcountries.com/v3.1/all?fields=name,flags,continents,cca2";
 
             ResponseEntity<List<RestCountryDto>> response = restTemplate.exchange(
                     apiUrl,
@@ -141,11 +229,9 @@ public class CountryServiceImpl implements CountryService {
 
             List<RestCountryDto> restCountries = response.getBody();
             if (restCountries == null || restCountries.isEmpty()) {
-                log.warn("No countries received from REST Countries API");
                 return "No countries received from REST Countries API";
             }
 
-            log.info("Received {} countries from API, processing...", restCountries.size());
 
             int savedCount = 0;
             for (RestCountryDto restCountry : restCountries) {
@@ -159,26 +245,29 @@ public class CountryServiceImpl implements CountryService {
                         if (!exists) {
                             countryRepository.save(country);
                             savedCount++;
-                            log.debug("Saved country: {}", country.getNameOfCounty());
                         } else {
-                            log.debug("Country already exists, skipping: {}", country.getNameOfCounty());
                         }
                     }
                 } catch (Exception e) {
-                    log.error("Failed to process country: {}", restCountry.getName() != null ? restCountry.getName().getCommon() : "unknown", e);
                 }
             }
 
             String successMessage = "Successfully loaded " + savedCount + " countries from REST Countries API";
-            log.info(successMessage);
             return successMessage;
 
         } catch (Exception e) {
-            log.error("Failed to load countries from REST Countries API", e);
             throw new RuntimeException("Failed to load countries from API: " + e.getMessage(), e);
         }
     }
 
+    /**
+     * Loads US states from the Flag CDN API and saves them to the database.
+     * Fetches state data including names, flag images, and Serbian translations.
+     * All states are categorized under the USA_STATE continent.
+     *
+     * @return success message with count of loaded states
+     * @throws RuntimeException if API call fails or data processing fails
+     */
     @Override
     public String loadUsStatesFromRestApi() {
        try {
@@ -200,6 +289,11 @@ public class CountryServiceImpl implements CountryService {
                            List<Continent> continents = new ArrayList<>();
                            continents.add(Continent.USA_STATE);
                            country.setNameOfCounty(name);
+                           
+                           String stateCode = code.substring(3).toUpperCase();
+                           country.setCca2(stateCode);
+                           country.setSerbianName(translateStateToSerbianLatin(stateCode));
+                           
                            byte[] flagImageBytes = null;
                            try {
                                flagImageBytes = downloadImageFromUrl(flagUrl);
@@ -222,6 +316,14 @@ public class CountryServiceImpl implements CountryService {
         }
     }
 
+    /**
+     * Converts a REST API country DTO to a Country entity.
+     * Maps country names, continents, flag images, and country codes.
+     * Downloads flag images from external URLs.
+     *
+     * @param restCountry the REST API country DTO
+     * @return the converted Country entity, or null if conversion fails
+     */
     private Country convertRestCountryToEntity(RestCountryDto restCountry) {
         if (restCountry.getName() == null || restCountry.getName().getCommon() == null) {
             log.warn("Skipping country with missing name data");
@@ -230,6 +332,9 @@ public class CountryServiceImpl implements CountryService {
         
         Country country = new Country();
         country.setNameOfCounty(restCountry.getName().getCommon());
+        
+        country.setCca2(restCountry.getCca2());
+        country.setSerbianName(translateToSerbianLatin(restCountry.getCca2()));
         
         List<Continent> continents = new ArrayList<>();
         if (restCountry.getContinents() != null) {
@@ -258,6 +363,13 @@ public class CountryServiceImpl implements CountryService {
         return country;
     }
     
+    /**
+     * Maps continent name strings to Continent enum values.
+     * Handles various continent name formats and aliases.
+     *
+     * @param continentName the continent name string
+     * @return the corresponding Continent enum, or null if not found
+     */
     private Continent mapStringToContinent(String continentName) {
         if (continentName == null) {
             return null;
@@ -273,6 +385,99 @@ public class CountryServiceImpl implements CountryService {
             case "AUSTRALIA", "OCEANIA" -> Continent.AUSTRALIA;
             default -> {
                 log.warn("Unknown continent name: {}", continentName);
+                yield null;
+            }
+        };
+    }
+
+    /**
+     * Translates country ISO codes to Serbian Latin script names.
+     * Uses Java's Locale system for automatic translation.
+     *
+     * @param isoCode the ISO country code
+     * @return the Serbian Latin name, or null if translation fails
+     */
+    private String translateToSerbianLatin(String isoCode) {
+        if (isoCode == null || isoCode.isEmpty()) {
+            return null;
+        }
+
+        try {
+            Locale countryLocale = new Locale("", isoCode.toUpperCase());
+            Locale serbianLatin = new Locale.Builder().setLanguage("sr").setScript("Latn").build();
+            return countryLocale.getDisplayCountry(serbianLatin);
+        } catch (Exception e) {
+            log.debug("Failed to translate country code {} to Serbian: {}", isoCode, e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Translates US state codes to Serbian Latin script names.
+     * Uses a comprehensive mapping of all US states and territories.
+     *
+     * @param stateCode the US state code (e.g., "CA", "NY")
+     * @return the Serbian Latin name of the state, or null if not found
+     */
+    private String translateStateToSerbianLatin(String stateCode) {
+        if (stateCode == null || stateCode.isEmpty()) {
+            return null;
+        }
+        
+        return switch (stateCode.toUpperCase()) {
+            case "AL" -> "Alabama";
+            case "AK" -> "Aljaska";
+            case "AZ" -> "Arizona";
+            case "AR" -> "Arkanzas";
+            case "CA" -> "Kalifornija";
+            case "CO" -> "Kolorado";
+            case "CT" -> "Konektikut";
+            case "DE" -> "Delaver";
+            case "FL" -> "Florida";
+            case "GA" -> "Džordžija";
+            case "HI" -> "Havaji";
+            case "ID" -> "Ajdaho";
+            case "IL" -> "Ilinois";
+            case "IN" -> "Indijana";
+            case "IA" -> "Ajova";
+            case "KS" -> "Kanzas";
+            case "KY" -> "Kentaki";
+            case "LA" -> "Lujzijana";
+            case "ME" -> "Mejn";
+            case "MD" -> "Merilend";
+            case "MA" -> "Masačusets";
+            case "MI" -> "Mičigen";
+            case "MN" -> "Minesota";
+            case "MS" -> "Misisipi";
+            case "MO" -> "Misuri";
+            case "MT" -> "Montana";
+            case "NE" -> "Nebraska";
+            case "NV" -> "Nevada";
+            case "NH" -> "Nju Hempšir";
+            case "NJ" -> "Nju Džerzi";
+            case "NM" -> "Nju Meksiko";
+            case "NY" -> "Njujork";
+            case "NC" -> "Severna Karolina";
+            case "ND" -> "Severna Dakota";
+            case "OH" -> "Ohajo";
+            case "OK" -> "Oklahoma";
+            case "OR" -> "Oregon";
+            case "PA" -> "Pensilvanija";
+            case "RI" -> "Rod Ajlend";
+            case "SC" -> "Južna Karolina";
+            case "SD" -> "Južna Dakota";
+            case "TN" -> "Tenesi";
+            case "TX" -> "Teksas";
+            case "UT" -> "Juta";
+            case "VT" -> "Vermont";
+            case "VA" -> "Virdžinija";
+            case "WA" -> "Vašington";
+            case "WV" -> "Zapadna Virdžinija";
+            case "WI" -> "Viskonsin";
+            case "WY" -> "Vajoming";
+            case "DC" -> "Distrikt Kolumbija";
+            default -> {
+                log.debug("No Serbian translation found for state code: {}", stateCode);
                 yield null;
             }
         };
@@ -307,6 +512,15 @@ public class CountryServiceImpl implements CountryService {
         }
     }
     
+    /**
+     * Retrieves a country's flag image as an HTTP response.
+     * Automatically detects image format (PNG, JPEG, SVG) and sets appropriate headers.
+     * Enhances SVG flags with minimum dimensions for better visibility.
+     *
+     * @param id the UUID of the country
+     * @return ResponseEntity containing the flag image with proper headers
+     * @throws RuntimeException if country not found or flag image unavailable
+     */
     @Override
     public ResponseEntity<byte[]> getCountryFlagResponse(UUID id) {
         try {
@@ -345,6 +559,14 @@ public class CountryServiceImpl implements CountryService {
         }
     }
     
+    /**
+     * Retrieves countries that belong to any of the specified continents.
+     * If no continents are specified, returns all countries.
+     *
+     * @param continents list of continents to filter by
+     * @return list of countries belonging to any of the specified continents
+     * @throws RuntimeException if database query fails
+     */
     @Override
     public List<Country> getCountriesByAnyContinents(List<com.flagfinder.enumeration.Continent> continents) {
         try {
@@ -363,6 +585,15 @@ public class CountryServiceImpl implements CountryService {
         }
     }
     
+    /**
+     * Retrieves a random country from any of the specified continents.
+     * If no continents are specified, returns a random country from all available.
+     * Uses database-level randomization for performance.
+     *
+     * @param continents list of continents to select from
+     * @return a randomly selected country
+     * @throws RuntimeException if no countries found or database query fails
+     */
     @Override
     public Country getRandomCountryFromAnyContinents(List<com.flagfinder.enumeration.Continent> continents) {
         try {

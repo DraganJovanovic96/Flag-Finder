@@ -1,5 +1,6 @@
 package com.flagfinder.controller;
 
+import com.flagfinder.dto.BilingualCountrySearchDto;
 import com.flagfinder.dto.CountryCreateDto;
 import com.flagfinder.dto.CountrySearchDto;
 import com.flagfinder.enumeration.Continent;
@@ -8,6 +9,7 @@ import com.flagfinder.service.CountryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.server.ResponseStatusException;
@@ -63,14 +65,14 @@ public class CountryController {
     }
 
     /**
-     * Retrieves all rounds with guesses for a specific game by game ID and returns a ResponseEntity object with status code 200 (OK)
-     * and the list of RoundSummaryDto objects with their guesses in the response body.
+     * Deletes a country by name (Admin only)
      *
-     * @param countryName the unique UUID identifier of the game whose rounds to retrieve
-     * @return a ResponseEntity object with status code 200 (OK) and the list of RoundSummaryDto objects with guesses in the response body
-     * @throws ResponseStatusException if the game is not found
+     * @param countryName the name of the country to delete
+     * @return a ResponseEntity object with status code 204 (No Content)
+     * @throws ResponseStatusException if the country is not found
      */
     @DeleteMapping("/{countryName}")
+    @PreAuthorize("hasAuthority('admin:delete')")
     public ResponseEntity<Void> deleteCountry(@PathVariable String countryName) {
         countryService.deleteCountryByName(countryName);
         return ResponseEntity.noContent().build();
@@ -115,18 +117,38 @@ public class CountryController {
     }
 
     /**
-     * Loads countries from REST Countries API
+     * Searches countries by name prefix in both English and Serbian with text normalization
+     * 
+     * @param prefix the prefix to search for
+     * @return ResponseEntity with list of matching countries (max 10)
+     */
+    @GetMapping("/search/bilingual")
+    public ResponseEntity<List<BilingualCountrySearchDto>> searchCountriesBilingual(@RequestParam String prefix) {
+        List<BilingualCountrySearchDto> countries = countryService.searchCountriesBilingualByPrefix(prefix, 10);
+
+        return ResponseEntity.ok(countries);
+    }
+
+    /**
+     * Loads countries from REST Countries API (Admin only)
      * 
      * @return ResponseEntity with success message
      */
     @PostMapping("/load-countries-api")
+    @PreAuthorize("hasAuthority('admin:create')")
     public ResponseEntity<String> loadCountriesFromApi() {
         String result = countryService.loadCountriesFromRestApi();
 
         return ResponseEntity.ok(result);
     }
 
+    /**
+     * Loads US states from external API into the database.
+     *
+     * @return ResponseEntity with operation result message
+     */
     @PostMapping("/load-us-states-api")
+    @PreAuthorize("hasAuthority('admin:create')")
     public ResponseEntity<String> loadUsStatesApi() {
         String result = countryService.loadUsStatesFromRestApi();
 

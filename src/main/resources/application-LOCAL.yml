@@ -11,8 +11,8 @@ spring:
       client:
         registration:
           google:
-            client-id: 1014886004873-bjqdtg042kc3tao6sdtlv9mth59lqrae.apps.googleusercontent.com
-            client-secret: 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
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
             scope: openid, profile, email
 
       resourceserver:
@@ -25,6 +25,7 @@ spring:
     properties:
       hibernate:
         format_sql: true
+        default_schema: public
     database: postgresql
     database-platform: org.hibernate.dialect.PostgreSQLDialect
 
@@ -33,7 +34,7 @@ spring:
     enabled: true
     baseline-on-migrate: true
     baseline-version: 0
-    locations: classpath:db/migration
+    locations: classpath:migration
 
   mail:
     host: smtp.gmail.com

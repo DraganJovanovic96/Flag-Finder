@@ -84,10 +84,9 @@ public class UserServiceImpl implements UserService {
      * @return The User entity with the specified email address.
      * @throws ResponseStatusException If a user with the specified email address is not found.
      */
-    @Override
     public User findOneByEmail(String email) {
-        if(email == null || email.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND,"User doesn't exist");
+        if (email == null || email.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User doesn't exist");
         }
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User with that email doesn't exist"));
@@ -140,8 +139,8 @@ public class UserServiceImpl implements UserService {
      */
     @Override
     public LocalStorageUserDto getLocalStorageUserDtoFromAuthentication() {
-            User user = getUserFromAuthentication();
-            return userMapper.userToLocalStorageUserDto(user);
+        User user = getUserFromAuthentication();
+        return userMapper.userToLocalStorageUserDto(user);
     }
 
     /**
@@ -163,16 +162,16 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserUpdateDto updateUser(UserUpdateDto userUpdateDto) {
         User user = getUserFromAuthentication();
-            user.setFirstname(userUpdateDto.getFirstname());
-            user.setLastname(userUpdateDto.getLastname());
-            user.setEmail(userUpdateDto.getEmail());
-            user.setImageUrl(userUpdateDto.getImageUrl());
-            user.setMobileNumber(userUpdateDto.getMobileNumber());
-            user.setDateOfBirth(userUpdateDto.getDateOfBirth());
-            user.setAddress(userUpdateDto.getAddress());
-            userRepository.save(user);
+        user.setFirstname(userUpdateDto.getFirstname());
+        user.setLastname(userUpdateDto.getLastname());
+        user.setEmail(userUpdateDto.getEmail());
+        user.setImageUrl(userUpdateDto.getImageUrl());
+        user.setMobileNumber(userUpdateDto.getMobileNumber());
+        user.setDateOfBirth(userUpdateDto.getDateOfBirth());
+        user.setAddress(userUpdateDto.getAddress());
+        userRepository.save(user);
 
-            return userMapper.userToUserUpdateDto(user);
+        return userMapper.userToUserUpdateDto(user);
     }
 
     /**
@@ -210,11 +209,11 @@ public class UserServiceImpl implements UserService {
         }
 
         User user = getUserFromAuthentication();
-            if (!passwordEncoder.matches(passwordChangeDto.getPassword(), user.getPassword())) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Incorrect password");
-            }
-            user.setPassword(passwordEncoder.encode(passwordChangeDto.getNewPassword()));
-            userRepository.save(user);
+        if (!passwordEncoder.matches(passwordChangeDto.getPassword(), user.getPassword())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Incorrect password");
+        }
+        user.setPassword(passwordEncoder.encode(passwordChangeDto.getNewPassword()));
+        userRepository.save(user);
     }
 
     /**
@@ -269,14 +268,38 @@ public class UserServiceImpl implements UserService {
         return new PageImpl<>(userDtos, resultPage.getPageable(), resultPage.getTotalElements());
     }
 
+    /**
+     * Retrieves a user profile by email address.
+     *
+     * @param email the email address of the user
+     * @return a UserProfileDto containing the user's profile information
+     * @throws ResponseStatusException if user is not found with the given email
+     */
     @Override
     public UserProfileDto getUserProfileByEmail(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found with email: " + email));
-        
+
         UserProfileDto userProfileDto = new UserProfileDto();
         userProfileDto.setGameName(user.getGameName());
-        
+
         return userProfileDto;
+    }
+
+    /**
+     * Sets the online status for a user identified by their game name.
+     *
+     * @param gameName the game name of the user
+     * @param isOnline the online status to set (true for online, false for offline)
+     * @throws ResponseStatusException if user is not found with the given game name
+     */
+    @Override
+    @Transactional
+    public void setUserOnlineStatus(String gameName, boolean isOnline) {
+        User user = userRepository.findOneByGameNameIgnoreCase(gameName)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found with game name: " + gameName));
+
+        user.setIsOnline(isOnline);
+        userRepository.save(user);
     }
 }

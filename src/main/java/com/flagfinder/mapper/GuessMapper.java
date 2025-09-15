@@ -5,14 +5,19 @@ import com.flagfinder.model.Guess;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
+/**
+ * MapStruct mapper interface for converting between Guess entities and DTOs.
+ * Handles mapping of guess data with custom field mappings for user and country information.
+ */
 @Mapper
 public interface GuessMapper {
 
     /**
-     * Maps a Guess object to a GuessDto object.
+     * Maps a Guess entity to a GuessDto.
+     * Maps user game name and guessed country information to corresponding DTO fields.
      *
-     * @param guess the Guess object to be mapped to a GuessDto object
-     * @return a GuessDto object containing the guess information
+     * @param guess the Guess entity to be mapped
+     * @return a GuessDto containing the guess information
      */
     @Mapping(target = "userGameName", source = "user.gameName")
     @Mapping(target = "guessedCountryName", source = "guessedCountry.nameOfCounty")

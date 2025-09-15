@@ -200,6 +200,12 @@ public class GameController {
         return ResponseEntity.ok(rounds);
     }
 
+    /**
+     * Retrieves user information including winnings count for a specific user.
+     *
+     * @param sendUserNameDto the DTO containing the username to retrieve info for
+     * @return a ResponseEntity object with status code 200 (OK) and the UserInfoDto object in the response body
+     */
     @PostMapping("user/info")
     public ResponseEntity<UserInfoDto> getUserWinningsCount(@RequestBody SendUserNameDto sendUserNameDto) {
 

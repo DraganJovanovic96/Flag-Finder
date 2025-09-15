@@ -5,14 +5,21 @@ import com.flagfinder.model.Round;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
+/**
+ * MapStruct mapper interface for converting between Round entities and DTOs.
+ * Handles mapping of round data with custom field mappings for country information and guesses.
+ * Uses GuessMapper for mapping nested guess objects.
+ */
 @Mapper(uses = {GuessMapper.class})
 public interface RoundMapper {
 
     /**
-     * Maps a Round object to a RoundDto object.
+     * Maps a Round entity to a RoundDto.
+     * Maps country information and guesses to corresponding DTO fields.
+     * Time remaining and round active status are ignored as they are calculated at runtime.
      *
-     * @param round the Round object to be mapped to a RoundDto object
-     * @return a RoundDto object containing the round's information
+     * @param round the Round entity to be mapped
+     * @return a RoundDto containing the round information
      */
     @Mapping(target = "countryName", source = "country.nameOfCounty")
     @Mapping(target = "countryId", source = "country.id")

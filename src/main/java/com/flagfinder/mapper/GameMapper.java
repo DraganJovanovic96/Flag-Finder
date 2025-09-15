@@ -8,6 +8,10 @@ import org.mapstruct.Mapping;
 
 import java.util.List;
 
+/**
+ * Mapper interface for converting between Game entities and DTOs.
+ * Uses MapStruct for automatic mapping with custom configurations.
+ */
 @Mapper(uses = {RoundMapper.class})
 public interface GameMapper {
     /**
@@ -24,6 +28,12 @@ public interface GameMapper {
     @Mapping(target = "currentRoundData", ignore = true)
     GameDto gameToGameDto(Game game);
 
+    /**
+     * Maps a Game object to a CompletedGameDto object for completed games.
+     *
+     * @param game the Game object to be mapped
+     * @return a CompletedGameDto object containing completed game information
+     */
     @Mapping(target = "roomId", source = "room.id")
     @Mapping(target = "hostUserName", expression = "java(game.getUsers().size() > 0 ? game.getUsers().get(0).getGameName() : null)")
     @Mapping(target = "guestUserName", expression = "java(game.getUsers().size() > 1 ? game.getUsers().get(1).getGameName() : null)")
@@ -35,5 +45,11 @@ public interface GameMapper {
     @Mapping(target = "endedAt", source = "endedAt")
     CompletedGameDto gameToCompletedGameDto(Game game);
 
+    /**
+     * Maps a list of Game objects to a list of GameDto objects.
+     *
+     * @param games the list of Game objects to be mapped
+     * @return a list of GameDto objects
+     */
     List<GameDto> gamesToGameDtos(List<Game> games);
 }

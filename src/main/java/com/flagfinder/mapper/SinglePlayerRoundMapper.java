@@ -7,14 +7,21 @@ import com.flagfinder.model.SinglePlayerRound;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
+/**
+ * MapStruct mapper interface for converting between SinglePlayerRound entities and DTOs.
+ * Handles mapping of single player round data with custom field mappings for country information and guess.
+ * Uses GuessMapper for mapping nested guess objects.
+ */
 @Mapper(uses = {GuessMapper.class})
 public interface SinglePlayerRoundMapper {
 
     /**
-     * Maps a SinglePlayerRound object to a SinglePlayerRoundDto object.
+     * Maps a SinglePlayerRound entity to a SinglePlayerRoundDto.
+     * Maps country information and guess to corresponding DTO fields.
+     * Time remaining and round active status are ignored as they are calculated at runtime.
      *
-     * @param singlePlayerRound the SinglePlayerRoundD object to be mapped to a SinglePlayerRoundDto object
-     * @return a SinglePlayerRoundDto object containing the singlePlayerRound's information
+     * @param singlePlayerRound the SinglePlayerRound entity to be mapped
+     * @return a SinglePlayerRoundDto containing the single player round information
      */
     @Mapping(target = "countryName", source = "country.nameOfCounty")
     @Mapping(target = "countryId", source = "country.id")

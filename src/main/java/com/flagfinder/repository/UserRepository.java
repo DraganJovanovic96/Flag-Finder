@@ -57,6 +57,12 @@ public interface UserRepository extends JpaRepository<User, UUID> {
      */
     Optional <User> findOneByVerificationCode(String verificationCode);
 
+    /**
+     * Checks if a user exists with the given game name (case insensitive).
+     *
+     * @param userName the game name to check for existence
+     * @return true if a user with the game name exists, false otherwise
+     */
     boolean existsByGameNameIgnoreCase(String userName);
 
     /**

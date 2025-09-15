@@ -26,6 +26,9 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Service class for handling authentication-related operations.
@@ -108,11 +111,11 @@ public class AuthenticationService {
         String token = generateVerificationCode();
         user.setVerificationCode(passwordEncoder.encode(token));
         user.setVerificationExpiration(LocalDateTime.now().plusHours(3));
-        //todo change enabled status and send verification
         user.setEnabled(true);
-//        sendVerificationEmail(token, user.getEmail());
         var savedUser = repository.save(user);
-        var jwtToken = jwtService.generateToken(user);
+        Map<String, Object> extraClaims = new HashMap<>();
+        extraClaims.put("gameName", user.getGameName());
+        var jwtToken = jwtService.generateToken(extraClaims, user);
         var refreshToken = jwtService.generateRefreshToken(user);
         saveUserToken(savedUser, jwtToken);
         return AuthenticationResponseDto.builder()
@@ -121,6 +124,13 @@ public class AuthenticationService {
                 .build();
     }
 
+    /**
+     * Sets a password reset code for the user and sends a reset email.
+     *
+     * @param emailRequestDto the email request containing the user's email address
+     * @throws UnsupportedEncodingException if URL encoding fails
+     * @throws ResponseStatusException if user doesn't exist
+     */
     public void setPasswordResetCode(EmailRequestDto emailRequestDto) throws UnsupportedEncodingException {
         User user = repository.findByEmail(emailRequestDto.getEmail())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, " User doesn't exist"));
@@ -134,6 +144,15 @@ public class AuthenticationService {
         sendResetPasswordLink(emailRequestDto.getEmail(), generatedToken);
     }
 
+    /**
+     * Resets a user's password using a password reset code.
+     *
+     * @param passwordCode the password reset code
+     * @param email the user's email address
+     * @param passwordResetDto the DTO containing new password information
+     * @return an AuthenticationResponseDto with new tokens
+     * @throws ResponseStatusException if user doesn't exist, code is invalid, expired, or passwords don't match
+     */
     public AuthenticationResponseDto resetPassword(String passwordCode, String email, PasswordResetDto passwordResetDto) {
         User user = repository.findByEmail(email)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, " User doesn't exist"));
@@ -155,7 +174,9 @@ public class AuthenticationService {
         user.setPasswordCodeExpiration(null);
         repository.save(user);
 
-        var jwtToken = jwtService.generateToken(user);
+        Map<String, Object> extraClaims = new HashMap<>();
+        extraClaims.put("gameName", user.getGameName());
+        var jwtToken = jwtService.generateToken(extraClaims, user);
         var refreshToken = jwtService.generateRefreshToken(user);
         revokeAllUserTokens(user);
         saveUserToken(user, jwtToken);
@@ -191,7 +212,9 @@ public class AuthenticationService {
                 )
         );
 
-        var jwtToken = jwtService.generateToken(user);
+        Map<String, Object> extraClaims = new HashMap<>();
+        extraClaims.put("gameName", user.getGameName());
+        var jwtToken = jwtService.generateToken(extraClaims, user);
         var refreshToken = jwtService.generateRefreshToken(user);
         revokeAllUserTokens(user);
         saveUserToken(user, jwtToken);
@@ -255,7 +278,9 @@ public class AuthenticationService {
         if (userEmail != null) {
             var user = this.repository.findByEmail(userEmail).orElseThrow();
             if (jwtService.isTokenValid(refreshToken, user)) {
-                var accessToken = jwtService.generateToken(user);
+                Map<String, Object> extraClaims = new HashMap<>();
+                extraClaims.put("gameName", user.getGameName());
+                var accessToken = jwtService.generateToken(extraClaims, user);
                 revokeAllUserTokens(user);
                 saveUserToken(user, accessToken);
                 var authResponse = AuthenticationResponseDto.builder()
@@ -267,6 +292,14 @@ public class AuthenticationService {
         }
     }
 
+    /**
+     * Verifies a user account using a verification token.
+     *
+     * @param token the verification token
+     * @param email the user's email address
+     * @return an AuthenticationResponseDto with new tokens
+     * @throws ResponseStatusException if user doesn't exist, already verified, token is invalid or expired
+     */
     public AuthenticationResponseDto verifyUser(String token, String email) {
         User user = repository.findByEmail(email)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, " User doesn't exist"));
@@ -288,7 +321,9 @@ public class AuthenticationService {
         user.setVerificationExpiration(null);
         repository.save(user);
 
-        var jwtToken = jwtService.generateToken(user);
+        Map<String, Object> extraClaims = new HashMap<>();
+        extraClaims.put("gameName", user.getGameName());
+        var jwtToken = jwtService.generateToken(extraClaims, user);
         var refreshToken = jwtService.generateRefreshToken(user);
         revokeAllUserTokens(user);
         saveUserToken(user, jwtToken);
@@ -299,6 +334,13 @@ public class AuthenticationService {
                 .build();
     }
 
+    /**
+     * Resends a verification code to the user's email.
+     *
+     * @param email the user's email address
+     * @throws UnsupportedEncodingException if URL encoding fails
+     * @throws ResponseStatusException if user doesn't exist or is already verified
+     */
     public void resendVerificationCode(String email) throws UnsupportedEncodingException {
         User user = repository.findByEmail(email)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, " User doesn't exist"));
@@ -314,6 +356,13 @@ public class AuthenticationService {
         repository.save(user);
     }
 
+    /**
+     * Sends a verification email to the user.
+     *
+     * @param token the verification token
+     * @param email the user's email address
+     * @throws UnsupportedEncodingException if URL encoding fails
+     */
     public void sendVerificationEmail(String token, String email) throws UnsupportedEncodingException {
         String subject = "MSS Account Verification";
 
@@ -422,6 +471,14 @@ public class AuthenticationService {
         }
     }
 
+    /**
+     * Sends a password reset link to the user's email.
+     *
+     * @param email the user's email address
+     * @param generatedToken the generated password reset token
+     * @throws UnsupportedEncodingException if URL encoding fails
+     * @throws ResponseStatusException if user doesn't exist
+     */
     public void sendResetPasswordLink(String email, String generatedToken) throws UnsupportedEncodingException {
         User user = repository.findByEmail(email)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User doesn't exist"));
@@ -468,6 +525,11 @@ public class AuthenticationService {
         }
     }
 
+    /**
+     * Generates a secure random verification code.
+     *
+     * @return a randomly generated verification code string
+     */
     public static String generateVerificationCode() {
         SecureRandom secureRandom = new SecureRandom();
         StringBuilder verificationCode = new StringBuilder(CODE_LENGTH);

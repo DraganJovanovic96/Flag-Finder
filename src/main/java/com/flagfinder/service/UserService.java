@@ -10,8 +10,9 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * The UserService interface contains methods that will be implemented is UserServiceImpl and methods correlate
- * to User entity.
+ * Service interface for user operations.
+ * Provides methods for user management, authentication, profile updates, and user queries.
+ * Contains methods that correlate to User entity operations.
  *
  * @author Dragan Jovanovic
  * @version 1.0
@@ -20,13 +21,13 @@ import java.util.UUID;
 public interface UserService {
 
     /**
-     * Retrieves a user entity by their email address.
+     * Sets the online status for a user.
      *
-     * @param email The email address of the user.
-     * @return The User entity with the specified email address.
-     * @throws ResponseStatusException If a user with the specified email address is not found.
+     * @param gameName The game name of the user
+     * @param isOnline The online status to set
      */
-    User findOneByEmail(String email);
+    void setUserOnlineStatus(String gameName, boolean isOnline);
+
 
     /**
      * Finds a user by their unique identifier.

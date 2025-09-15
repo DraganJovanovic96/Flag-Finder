@@ -14,14 +14,34 @@ import java.security.Principal;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * WebSocket handshake handler that extracts JWT tokens and determines user principal.
+ * Supports token extraction from both Authorization header and query parameters.
+ */
 @Component
 @RequiredArgsConstructor
 @Slf4j
 public class JwtPrincipalHandshakeHandler extends DefaultHandshakeHandler {
 
+    /**
+     * Service for JWT token operations.
+     */
     private final JwtService jwtService;
+    
+    /**
+     * Repository for user data access.
+     */
     private final UserRepository userRepository;
 
+    /**
+     * Determines the user principal for WebSocket connection based on JWT token.
+     * Extracts token from Authorization header or query parameters and resolves user.
+     *
+     * @param request the server HTTP request
+     * @param wsHandler the WebSocket handler
+     * @param attributes the handshake attributes
+     * @return the user principal with game name or "anonymous" if authentication fails
+     */
     @Override
     protected Principal determineUser(@NonNull ServerHttpRequest request,
                                       @NonNull WebSocketHandler wsHandler,
@@ -58,11 +78,9 @@ public class JwtPrincipalHandshakeHandler extends DefaultHandshakeHandler {
                         .orElse(email);
                 return () -> gameName;
             } catch (Exception e) {
-                log.warn("Failed to resolve principal from JWT in handshake: {}", e.getMessage());
             }
         }
 
-        log.warn("No JWT on WS handshake; anonymous principal assigned");
         return () -> "anonymous";
     }
 }

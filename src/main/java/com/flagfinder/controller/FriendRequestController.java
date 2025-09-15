@@ -27,18 +27,16 @@ import java.util.List;
 public class FriendRequestController {
 
     /**
-     * The service used to for services.
+     * The service used for friendship operations.
      */
     private final FriendshipService friendshipService;
 
     /**
-     * Creates a new service using the information provided in the {@code ServiceCreateDto}
-     * and returns a ResponseEntity object with status code 201 (Created) and the saved ServiceDto
-     * object in the response body.
+     * Sends a friend request to another user.
      *
-     * @param sendUserNameDto the DTO containing the information for the new service to be created
-     * @return a ResponseEntity object with status code 201 (Created) and the saved ServiceDto
-     * object in the response body
+     * @param sendUserNameDto the DTO containing the username to send friend request to
+     * @return a ResponseEntity object with status code 201 (Created) and the FriendshipDto object
+     * @throws ResponseStatusException if friend request already exists or user not found
      */
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, path = "/send-friend-request")
     @PreAuthorize("hasAnyAuthority('admin:create', 'user:create')")
@@ -53,6 +51,13 @@ public class FriendRequestController {
                 .body(friendshipService.sendFriendRequest(sendUserNameDto));
     }
 
+    /**
+     * Responds to a friend request (accept or decline).
+     *
+     * @param friendRequestResponseDto the DTO containing the response to the friend request
+     * @return a ResponseEntity object with status code 201 (Created) and the FriendshipDto object
+     * @throws ResponseStatusException if friend request is not found
+     */
     @PutMapping(consumes = MediaType.APPLICATION_JSON_VALUE, path = "/friend-request-response")
     @PreAuthorize("hasAnyAuthority('admin:create', 'user:create')")
     @ApiOperation(value = "Friend request response")
@@ -65,6 +70,13 @@ public class FriendRequestController {
                 .body(friendshipService.respondToFriendRequest(friendRequestResponseDto));
     }
 
+    /**
+     * Retrieves paginated friend requests for the authenticated user.
+     *
+     * @param page the page number (0-based)
+     * @param pageSize the number of items per page
+     * @return a ResponseEntity with paginated friend requests and pagination headers
+     */
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE, path = "/requests")
     @PreAuthorize("hasAnyAuthority('admin:read', 'user:read')")
     @ApiOperation(value = "Friend requests")
@@ -83,6 +95,13 @@ public class FriendRequestController {
         return new ResponseEntity<>(resultPage.getContent(), headers, HttpStatus.OK);
     }
 
+    /**
+     * Retrieves paginated friends list for the authenticated user.
+     *
+     * @param page the page number (0-based)
+     * @param pageSize the number of items per page
+     * @return a ResponseEntity with paginated friends list and pagination headers
+     */
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasAnyAuthority('admin:read', 'user:read')")
     @ApiOperation(value = "Friends")
@@ -99,5 +118,24 @@ public class FriendRequestController {
         headers.add("X-Current-Page", String.valueOf(resultPage.getNumber()));
 
         return new ResponseEntity<>(resultPage.getContent(), headers, HttpStatus.OK);
+    }
+
+    /**
+     * Removes a friend from the authenticated user's friends list.
+     *
+     * @param friendUsername the username of the friend to remove
+     * @return a ResponseEntity with status code 200 (OK)
+     * @throws ResponseStatusException if friend is not found
+     */
+    @DeleteMapping(path = "/{friendUsername}")
+    @PreAuthorize("hasAnyAuthority('admin:delete', 'user:delete')")
+    @ApiOperation(value = "Remove friend")
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Successfully removed friend."),
+            @ApiResponse(code = 404, message = "Friend not found.")
+    })
+    public ResponseEntity<Void> removeFriend(@PathVariable String friendUsername) {
+        friendshipService.removeFriend(friendUsername);
+        return ResponseEntity.ok().build();
     }
 }
