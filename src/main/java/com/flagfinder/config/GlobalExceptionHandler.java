@@ -32,7 +32,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ResponseStatusException.class)
     @ResponseBody
     public ResponseEntity<String> handleResponseStatusException(ResponseStatusException ex) {
-        // Return the response with the correct HTTP status and message
         return ResponseEntity.status(ex.getStatusCode()).body(ex.getReason());
     }
 }

@@ -1,7 +1,7 @@
 package com.flagfinder.config;
 
 
-import com.mss.repository.UserRepository;
+import com.flagfinder.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

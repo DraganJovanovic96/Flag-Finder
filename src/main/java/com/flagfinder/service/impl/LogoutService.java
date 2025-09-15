@@ -1,7 +1,7 @@
 package com.flagfinder.service.impl;
 
 
-import com.mss.repository.TokenRepository;
+import com.flagfinder.repository.TokenRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;

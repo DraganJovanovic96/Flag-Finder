@@ -1,4 +1,4 @@
-package com.mss.service;
+package com.flagfinder.service;
 
 import jakarta.mail.MessagingException;
 
@@ -12,5 +12,13 @@ import jakarta.mail.MessagingException;
  */
 public interface EmailService {
 
+    /**
+     * Sends a verification email to the specified recipient.
+     *
+     * @param to the recipient email address
+     * @param Subject the email subject line
+     * @param text the email body content
+     * @throws MessagingException if email sending fails
+     */
     public void sendVerificationEmail(String to, String Subject, String text) throws MessagingException;
 }

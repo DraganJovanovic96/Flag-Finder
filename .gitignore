@@ -1,0 +1,9 @@
+# IntelliJ IDEA project files
+.idea/
+
+# IntelliJ IDEA default ignored files
+shelf/
+workspace.xml
+
+# Build output
+target/

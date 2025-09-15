@@ -1,6 +1,6 @@
 package com.flagfinder.model;
 
-import com.mss.enumeration.TokenType;
+import com.flagfinder.enumeration.TokenType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -19,7 +19,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-public class Token extends BaseEntity<Long> {
+public class Token extends BaseEntity {
     /**
      * The token value.
      */
@@ -47,5 +47,5 @@ public class Token extends BaseEntity<Long> {
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
-    public com.mss.model.User user;
+    public com.flagfinder.model.User user;
 }

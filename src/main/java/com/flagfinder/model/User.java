@@ -8,6 +8,7 @@ import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.Filter;
 import org.hibernate.annotations.FilterDef;
@@ -18,7 +19,6 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
@@ -35,12 +35,20 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@EqualsAndHashCode(exclude = {"hostedRooms", "guestRooms", "tokens", "initiators", "targets"})
 @Entity
 @Table(name = "users")
 @SQLDelete(sql = "UPDATE users SET deleted = true WHERE id=?")
 @FilterDef(name = "deletedUserFilter", parameters = @ParamDef(name = "isDeleted", type = Boolean.class))
 @Filter(name = "deletedUserFilter", condition = "deleted = :isDeleted")
-public class User extends BaseEntity<Long> implements UserDetails {
+public class User extends BaseEntity implements UserDetails {
+
+    /**
+     * The user's unique game name used for identification in games.
+     * Must be unique across all users and cannot be null.
+     */
+    @Column(unique = true,nullable = false)
+    private String gameName;
 
     /**
      * The user's firstname.
@@ -90,6 +98,12 @@ public class User extends BaseEntity<Long> implements UserDetails {
     private boolean enabled;
 
     /**
+     * Flag to track if user has completed initial setup (gameName customization).
+     */
+    @Column
+    private boolean initialSetupCompleted = false;
+
+    /**
      * The user's verification code.
      */
     @Column(name = "verification_code")
@@ -100,6 +114,12 @@ public class User extends BaseEntity<Long> implements UserDetails {
      */
     @Column(name = "verification_expiration")
     private LocalDateTime verificationExpiration;
+
+    /**
+     * Google OAuth2 ID for users who sign in with Google.
+     */
+    @Column(name = "google_id")
+    private String googleId;
 
     /**
      * The user's password reset code.
@@ -127,41 +147,97 @@ public class User extends BaseEntity<Long> implements UserDetails {
     private Role role;
 
     /**
+     * Whether the user is currently online (has an active WebSocket connection).
+     */
+    @Column(name = "is_online")
+    private Boolean isOnline = false;
+
+    /**
      * The tokens associated with the user.
      */
     @OneToMany(mappedBy = "user")
     private List<Token> tokens;
 
+
+    /**
+     * List of friendships where this user is the initiator (sender of friend request).
+     */
+    @OneToMany(mappedBy = "initiator")
+    private List<Friendship> initiators;
+
+    /**
+     * List of friendships where this user is the target (receiver of friend request).
+     */
+    @OneToMany(mappedBy = "target")
+    private List<Friendship> targets;
+
+    /**
+     * List of rooms where this user is the host.
+     */
+    @OneToMany(mappedBy = "host")
+    private List<Room> hostedRooms;
+
+    /**
+     * List of rooms where this user is the guest.
+     */
+    @OneToMany(mappedBy = "guest")
+    private List<Room> guestRooms;
+
+    /**
+     * Returns the authorities granted to the user based on their role.
+     * 
+     * @return collection of granted authorities
+     */
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return role.getAuthorities();
     }
 
+    /**
+     * Returns the password used to authenticate the user.
+     * 
+     * @return the user's password
+     */
     @Override
     public String getPassword() {
         return password;
     }
 
+    /**
+     * Returns the username used to authenticate the user (email in this case).
+     * 
+     * @return the user's email as username
+     */
     @Override
     public String getUsername() {
         return email;
     }
 
+    /**
+     * Indicates whether the user's account has expired.
+     * 
+     * @return true as accounts never expire in this implementation
+     */
     @Override
     public boolean isAccountNonExpired() {
         return true;
     }
 
-    @Override
-    public boolean isAccountNonLocked() {
-        return Boolean.FALSE.equals(getDeleted());
-    }
-
+    /**
+     * Indicates whether the user's credentials (password) has expired.
+     * 
+     * @return true as credentials never expire in this implementation
+     */
     @Override
     public boolean isCredentialsNonExpired() {
         return true;
     }
 
+    /**
+     * Indicates whether the user is enabled or disabled.
+     * 
+     * @return true if the user is enabled, false otherwise
+     */
     @Override
     public boolean isEnabled() {
         return enabled;

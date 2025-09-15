@@ -10,6 +10,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.logout.LogoutHandler;
@@ -17,11 +18,12 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.net.URLEncoder;
 import java.util.List;
 
-import static com.mss.enumeration.Permission.*;
-import static com.mss.enumeration.Role.ADMIN;
-import static com.mss.enumeration.Role.USER;
+import static com.flagfinder.enumeration.Permission.*;
+import static com.flagfinder.enumeration.Role.ADMIN;
+import static com.flagfinder.enumeration.Role.USER;
 import static org.springframework.http.HttpMethod.*;
 
 /**
@@ -42,6 +44,11 @@ public class SecurityConfiguration {
      * JWT authentication filter used for authentication.
      */
     private final JwtAuthenticationFilter jwtAuthFilter;
+
+    /**
+     * Beacon authentication filter for handling beacon requests with token parameters.
+     */
+    private final BeaconAuthenticationFilter beaconAuthFilter;
 
     /**
      * Authentication provider for authenticating users.
@@ -73,7 +80,10 @@ public class SecurityConfiguration {
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(
                                 "/api/v1/auth/**",
+                                "/api/v1/oauth2/**",
+                                "/oauth2/**",
                                 "/api/v1/ping",
+                                "/api/v1/countries/*/flag",
                                 "/error",
                                 "/v2/api-docs",
                                 "/v3/api-docs",
@@ -84,49 +94,27 @@ public class SecurityConfiguration {
                                 "/configuration/security",
                                 "/swagger-ui/**",
                                 "/webjars/**",
-                                "/swagger-ui.html,"
+                                "/swagger-ui.html,",
+                                "/ws/**",
+                                "/ws-native/**"
                         )
                         .permitAll()
 
-                        .requestMatchers("/api/v1/customers").hasAnyRole(ADMIN.name(), USER.name())
-                        .requestMatchers(GET, "/api/v1/customers").hasAnyAuthority(ADMIN_READ.name(), USER_READ.name())
-                        .requestMatchers(POST, "/api/v1/customers").hasAnyAuthority(ADMIN_CREATE.name(), USER_CREATE.name())
-                        .requestMatchers(DELETE, "/api/v1/customers").hasAnyAuthority(ADMIN_DELETE.name(), USER_DELETE.name())
-
-                        .requestMatchers("/api/v1/services").hasAnyRole(ADMIN.name(), USER.name())
-                        .requestMatchers(GET, "/api/v1/services").hasAnyAuthority(ADMIN_READ.name(), USER_READ.name())
-                        .requestMatchers(POST, "/api/v1/services").hasAnyAuthority(ADMIN_CREATE.name(), USER_CREATE.name())
-                        .requestMatchers(DELETE, "/api/v1/services").hasAnyAuthority(ADMIN_DELETE.name(), USER_DELETE.name())
-
+                        .requestMatchers("/api/v1/friend-requests").hasAnyRole(ADMIN.name(), USER.name())
+                        .requestMatchers(GET, "/api/v1/friend-requests").hasAnyAuthority(ADMIN_READ.name(), USER_READ.name())
+                        .requestMatchers(POST, "/api/v1/friend-requests").hasAnyAuthority(ADMIN_CREATE.name(), USER_CREATE.name())
+                        .requestMatchers(DELETE, "/api/v1/friend-requests").hasAnyAuthority(ADMIN_DELETE.name(), USER_DELETE.name())
+                        
                         .requestMatchers("/api/v1/register").hasAnyRole(ADMIN.name())
                         .requestMatchers(POST,"/api/v1/register").hasAnyAuthority(ADMIN_CREATE.name())
-
-                        .requestMatchers("/api/v1/service-types").hasAnyRole(ADMIN.name(), USER.name())
-                        .requestMatchers(GET, "/api/v1/service-types").hasAnyAuthority(ADMIN_READ.name(), USER_READ.name())
-                        .requestMatchers(POST, "/api/v1/service-types").hasAnyAuthority(ADMIN_CREATE.name(), USER_CREATE.name())
-                        .requestMatchers(DELETE, "/api/v1/service-types").hasAnyAuthority(ADMIN_DELETE.name(), USER_DELETE.name())
-                        .requestMatchers(PUT, "/api/v1/service-types").hasAnyAuthority(ADMIN_UPDATE.name(),USER_UPDATE.name())
-
-                        .requestMatchers("/api/v1/vehicles").hasAnyRole(ADMIN.name(), USER.name())
-                        .requestMatchers(GET, "/api/v1/vehicles").hasAnyAuthority(ADMIN_READ.name(), USER_READ.name())
-                        .requestMatchers(POST, "/api/v1/vehicles").hasAnyAuthority(ADMIN_CREATE.name(), USER_CREATE.name())
-                        .requestMatchers(DELETE, "/api/v1/vehicles").hasAnyAuthority(ADMIN_DELETE.name(), USER_DELETE.name())
-                        .requestMatchers(PUT, "/api/v1/vehicles").hasAnyAuthority(ADMIN_UPDATE.name(),USER_UPDATE.name())
 
                         .requestMatchers(DELETE, "/api/v1/users").hasAnyAuthority(ADMIN_DELETE.name())
                         .requestMatchers(PUT, "/api/v1/users").hasAnyAuthority(ADMIN_UPDATE.name(),USER_UPDATE.name())
 
-                        .requestMatchers("/api/v1/download-invoice/*").hasAnyRole(ADMIN.name(), USER.name())
-                        .requestMatchers(GET, "/api/v1/download-invoice/*").hasAnyAuthority(ADMIN_READ.name(), USER_READ.name())
-
-                        .requestMatchers("/api/v1/dashboard").hasAnyRole(ADMIN.name(), USER.name())
-                        .requestMatchers(GET, "/api/v1/dashboard").hasAnyAuthority(ADMIN_READ.name(), USER_READ.name())
-
-                        .requestMatchers("/api/v1/revenue").hasAnyRole(ADMIN.name(), USER.name())
-                        .requestMatchers(POST, "/api/v1/revenue").hasAnyAuthority(ADMIN_CREATE.name(), USER_CREATE.name())
-
-                        .requestMatchers("/api/v1/email").hasAnyRole(ADMIN.name(), USER.name())
-                        .requestMatchers(POST, "/api/v1/revenue").hasAnyAuthority(ADMIN_CREATE.name(), USER_CREATE.name())
+                        .requestMatchers("/api/v1/countries/load-countries-api").hasAnyRole(ADMIN.name())
+                        .requestMatchers(POST, "/api/v1/countries/load-countries-api").hasAnyAuthority(ADMIN_CREATE.name())
+                        .requestMatchers("/api/v1/countries/load-us-states-api").hasAnyRole(ADMIN.name())
+                        .requestMatchers(POST, "/api/v1/countries/load-us-states-api").hasAnyAuthority(ADMIN_CREATE.name())
 
                         .anyRequest()
                         .authenticated()
@@ -134,7 +122,49 @@ public class SecurityConfiguration {
                 .sessionManagement(sessionManagement -> sessionManagement
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
+                .oauth2Login(oauth2 -> oauth2
+                        .successHandler((request, response, authentication) -> {
+                            try {
+                                OAuth2User oauth2User = (OAuth2User) authentication.getPrincipal();
+                                String email = oauth2User.getAttribute("email");
+                                String name = oauth2User.getAttribute("name");
+                                String googleId = oauth2User.getAttribute("sub");
+                                
+                                String picture = oauth2User.getAttribute("picture");
+                                String givenName = oauth2User.getAttribute("given_name");
+                                String familyName = oauth2User.getAttribute("family_name");
+                                String locale = oauth2User.getAttribute("locale");
+                                
+                                StringBuilder redirectUrl = new StringBuilder("/api/v1/oauth2/success?");
+                                redirectUrl.append("email=").append(URLEncoder.encode(email != null ? email : "", "UTF-8"));
+                                redirectUrl.append("&name=").append(URLEncoder.encode(name != null ? name : "", "UTF-8"));
+                                redirectUrl.append("&googleId=").append(URLEncoder.encode(googleId != null ? googleId : "", "UTF-8"));
+                                
+                                if (picture != null) {
+                                    redirectUrl.append("&picture=").append(URLEncoder.encode(picture, "UTF-8"));
+                                }
+                                if (givenName != null) {
+                                    redirectUrl.append("&givenName=").append(URLEncoder.encode(givenName, "UTF-8"));
+                                }
+                                if (familyName != null) {
+                                    redirectUrl.append("&familyName=").append(URLEncoder.encode(familyName, "UTF-8"));
+                                }
+                                if (locale != null) {
+                                    redirectUrl.append("&locale=").append(URLEncoder.encode(locale, "UTF-8"));
+                                }
+                                
+                                response.sendRedirect(redirectUrl.toString());
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                                response.sendRedirect(frontendUrl + "/login?error=oauth2_failed");
+                            }
+                        })
+                        .failureHandler((request, response, exception) -> {
+                            response.sendRedirect(frontendUrl + "/login?error=oauth2_failed");
+                        })
+                )
                 .authenticationProvider(authenticationProvider)
+                .addFilterBefore(beaconAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .logout(logout -> logout
                         .logoutUrl("/api/v1/auth/logout")

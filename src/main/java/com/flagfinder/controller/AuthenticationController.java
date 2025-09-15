@@ -1,8 +1,8 @@
 package com.flagfinder.controller;
 
 
-import com.mss.dto.*;
-import com.mss.service.impl.AuthenticationService;
+import com.flagfinder.dto.AuthenticationResponseDto;
+import com.flagfinder.service.impl.AuthenticationService;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import jakarta.servlet.http.HttpServletRequest;
@@ -40,11 +40,11 @@ public class AuthenticationController {
      */
     @PostMapping("/authenticate")
     @ApiResponses(value = {
-            @ApiResponse(code = 200, message = "Successfully logged in.", response = VehicleDto.class),
+            @ApiResponse(code = 200, message = "Successfully logged in.", response = AuthenticationResponseDto.class),
             @ApiResponse(code = 403, message = "Account is not verified.")
     })
-    public ResponseEntity<AuthenticationResponseDto> authenticate(
-            @RequestBody AuthenticationRequestDto request
+    public ResponseEntity<com.flagfinder.dto.AuthenticationResponseDto> authenticate(
+            @RequestBody com.flagfinder.dto.AuthenticationRequestDto request
     ) {
         return ResponseEntity.ok(service.authenticate(request));
     }
@@ -68,12 +68,12 @@ public class AuthenticationController {
      * Verifies a user's account using a verification code.
      *
      * @param token verification code of the user.
-     * @return a {@link ResponseEntity} containing an {@link AuthenticationResponseDto} with the verification status
+     * @return a {@link ResponseEntity} containing an {@link com.flagfinder.dto.AuthenticationResponseDto} with the verification status
      * @throws ResponseStatusException if the verification code is invalid, expired, or if the user is already verified
      */
     @PostMapping("/verification")
-    public ResponseEntity<AuthenticationResponseDto> verifyUser(@RequestParam String token,
-                                                                @RequestParam String email) {
+    public ResponseEntity<com.flagfinder.dto.AuthenticationResponseDto> verifyUser(@RequestParam String token,
+                                                                            @RequestParam String email) {
         return ResponseEntity.status(HttpStatus.OK)
                 .body(service.verifyUser(token, email));
     }
@@ -87,7 +87,7 @@ public class AuthenticationController {
      * @throws RuntimeException if an error occurs while resending the verification code
      */
     @PostMapping("/resend-verification")
-    public ResponseEntity<?> reVerifyUser(@RequestBody EmailRequestDto emailRequestDto) {
+    public ResponseEntity<?> reVerifyUser(@RequestBody com.flagfinder.dto.EmailRequestDto emailRequestDto) {
         try {
             service.resendVerificationCode(emailRequestDto.getEmail());
             return ResponseEntity.status(HttpStatus.OK)
@@ -106,7 +106,7 @@ public class AuthenticationController {
      * @throws RuntimeException if an error occurs while resending the verification code
      */
     @PostMapping("/send-reset-password")
-    public ResponseEntity<?> sendPasswordResetCode(@RequestBody EmailRequestDto emailRequestDto) {
+    public ResponseEntity<?> sendPasswordResetCode(@RequestBody com.flagfinder.dto.EmailRequestDto emailRequestDto) {
         try {
             service.setPasswordResetCode(emailRequestDto);
             return ResponseEntity.status(HttpStatus.OK)
@@ -131,12 +131,28 @@ public class AuthenticationController {
      * @throws ResponseStatusException if the token is invalid or the password reset fails.
      */
     @PostMapping("/reset-password")
-    public ResponseEntity<AuthenticationResponseDto> resetPassword(
+    public ResponseEntity<com.flagfinder.dto.AuthenticationResponseDto> resetPassword(
             @RequestParam String token,
             @RequestParam String email,
-            @RequestBody PasswordResetDto passwordResetDto) {
+            @RequestBody com.flagfinder.dto.PasswordResetDto passwordResetDto) {
 
         return ResponseEntity.status(HttpStatus.OK)
                 .body(service.resetPassword(token, email, passwordResetDto));
+    }
+
+    /**
+     * Logs out the current user by invalidating their token.
+     *
+     * @param request the HttpServletRequest containing the authorization header
+     * @param response the HttpServletResponse
+     * @return a ResponseEntity with status OK if logout is successful
+     */
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(
+            HttpServletRequest request,
+            HttpServletResponse response
+    ) {
+        service.logout(request, response);
+        return ResponseEntity.ok().body("Successfully logged out");
     }
 }

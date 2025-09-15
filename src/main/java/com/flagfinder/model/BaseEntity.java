@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 
 import java.time.Instant;
+import java.util.UUID;
 
 /**
  * This class represents status information for entities in finance system.
@@ -16,41 +17,18 @@ import java.time.Instant;
  */
 @MappedSuperclass
 @Data
-public abstract class BaseEntity<T> {
+public abstract class BaseEntity {
     /**
      * The unique identifier for entities.
      */
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private T id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(columnDefinition = "UUID")
+    private UUID id;
 
     /**
      * The date and time when the entity was created.
      */
     @Column
     private final Instant createdAt = Instant.now();
-
-    /**
-     * The date and time when the entity was last updated.
-     */
-    @Column
-    private Instant updatedAt;
-
-    /**
-     * Indicates whether the entity has been deleted.
-     */
-    @Column
-    private Boolean deleted = false;
-
-    /**
-     * Indicates when the entity was deleted.
-     */
-    @Column
-    private Instant deletedAt;
-
-    /**
-     * Indicates whether the entity has been deleted by cascade.
-     */
-    @Column
-    private Boolean deletedByCascade = false;
 }

@@ -1,7 +1,7 @@
 package com.flagfinder.repository;
 
-import com.mss.dto.UserFiltersQueryDto;
-import com.mss.model.User;
+import com.flagfinder.dto.UserFiltersQueryDto;
+import com.flagfinder.model.User;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
 import jakarta.persistence.criteria.*;
@@ -15,6 +15,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+/**
+ * Custom repository implementation for User entity operations.
+ * Provides advanced filtering capabilities using JPA Criteria API
+ * for dynamic query construction based on user filter criteria.
+ */
 @Data
 @Repository
 public class UserCustomRepository {

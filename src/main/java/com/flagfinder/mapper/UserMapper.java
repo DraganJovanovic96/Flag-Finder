@@ -1,10 +1,10 @@
 package com.flagfinder.mapper;
 
 
-import com.mss.dto.LocalStorageUserDto;
-import com.mss.dto.UserDto;
-import com.mss.dto.UserUpdateDto;
-import com.mss.model.User;
+import com.flagfinder.dto.LocalStorageUserDto;
+import com.flagfinder.dto.UserDto;
+import com.flagfinder.dto.UserUpdateDto;
+import com.flagfinder.model.User;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 

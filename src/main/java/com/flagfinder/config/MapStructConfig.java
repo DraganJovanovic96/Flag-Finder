@@ -1,6 +1,5 @@
 package com.flagfinder.config;
 
-import com.mss.mapper.*;
 import org.mapstruct.MapperConfig;
 import org.mapstruct.MappingInheritanceStrategy;
 import org.mapstruct.ReportingPolicy;
@@ -28,42 +27,92 @@ import org.springframework.context.annotation.Configuration;
 )
 public class MapStructConfig {
     /**
-     * This method creates a bean of userMapper, so it can be used by IoC.
+     * Creates a UserMapper bean for dependency injection.
+     * 
+     * @return configured UserMapper instance
      */
     @Bean
-    public UserMapper userMapper() {
-        return Mappers.getMapper(UserMapper.class);
+    public com.flagfinder.mapper.UserMapper userMapper() {
+        return Mappers.getMapper(com.flagfinder.mapper.UserMapper.class);
     }
 
     /**
-     * This method creates a bean of CustomerMapper, so it can be used by IoC.
+     * Creates a FriendshipMapper bean for dependency injection.
+     * 
+     * @return configured FriendshipMapper instance
      */
     @Bean
-    public CustomerMapper customerMapper() {
-        return Mappers.getMapper(CustomerMapper.class);
+    public com.flagfinder.mapper.FriendshipMapper friendshipMapper() {
+        return Mappers.getMapper(com.flagfinder.mapper.FriendshipMapper.class);
     }
 
     /**
-     * This method creates a bean of VehicleMapper, so it can be used by IoC.
+     * Creates a RoomMapper bean for dependency injection.
+     * 
+     * @return configured RoomMapper instance
      */
     @Bean
-    public VehicleMapper vehicleMapper() {
-        return Mappers.getMapper(VehicleMapper.class);
+    public com.flagfinder.mapper.RoomMapper roomMapper() {
+        return Mappers.getMapper(com.flagfinder.mapper.RoomMapper.class);
     }
 
     /**
-     * This method creates a bean of ServiceMapper, so it can be used by IoC.
+     * Creates a GameMapper bean for dependency injection.
+     * 
+     * @return configured GameMapper instance
      */
     @Bean
-    public ServiceMapper serviceMapper() {
-        return Mappers.getMapper(ServiceMapper.class);
+    public com.flagfinder.mapper.GameMapper gameMapper() {
+        return Mappers.getMapper(com.flagfinder.mapper.GameMapper.class);
     }
 
     /**
-     * This method creates a bean of ServiceType  Mapper, so it can be used by IoC.
+     * Creates a RoundMapper bean for dependency injection.
+     * 
+     * @return configured RoundMapper instance
      */
     @Bean
-    public ServiceTypeMapper serviceTypeMapper() {
-        return Mappers.getMapper(ServiceTypeMapper.class);
+    public com.flagfinder.mapper.RoundMapper roundMapper() {
+        return Mappers.getMapper(com.flagfinder.mapper.RoundMapper.class);
+    }
+
+    /**
+     * Creates a GuessMapper bean for dependency injection.
+     * 
+     * @return configured GuessMapper instance
+     */
+    @Bean
+    public com.flagfinder.mapper.GuessMapper guessMapper() {
+        return Mappers.getMapper(com.flagfinder.mapper.GuessMapper.class);
+    }
+
+    /**
+     * Creates a SinglePlayerRoomMapper bean for dependency injection.
+     * 
+     * @return configured SinglePlayerRoomMapper instance
+     */
+    @Bean
+    public com.flagfinder.mapper.SinglePlayerRoomMapper singlePlayerRoomMapper() {
+        return Mappers.getMapper(com.flagfinder.mapper.SinglePlayerRoomMapper.class);
+    }
+
+    /**
+     * Creates a SinglePlayerGameMapper bean for dependency injection.
+     * 
+     * @return configured SinglePlayerGameMapper instance
+     */
+    @Bean
+    public com.flagfinder.mapper.SinglePlayerGameMapper singlePlayerGameMapper() {
+        return Mappers.getMapper(com.flagfinder.mapper.SinglePlayerGameMapper.class);
+    }
+
+    /**
+     * Creates a SinglePlayerRoundMapper bean for dependency injection.
+     * 
+     * @return configured SinglePlayerRoundMapper instance
+     */
+    @Bean
+    public com.flagfinder.mapper.SinglePlayerRoundMapper singlePlayerRoundMapper() {
+        return Mappers.getMapper(com.flagfinder.mapper.SinglePlayerRoundMapper.class);
     }
 }

@@ -1,16 +1,18 @@
-package com.mss.service;
+package com.flagfinder.service;
 
 
-import com.mss.dto.*;
-import com.mss.model.User;
+import com.flagfinder.dto.*;
+import com.flagfinder.model.User;
 import org.springframework.data.domain.Page;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.UUID;
 
 /**
- * The UserService interface contains methods that will be implemented is UserServiceImpl and methods correlate
- * to User entity.
+ * Service interface for user operations.
+ * Provides methods for user management, authentication, profile updates, and user queries.
+ * Contains methods that correlate to User entity operations.
  *
  * @author Dragan Jovanovic
  * @version 1.0
@@ -19,21 +21,21 @@ import java.util.List;
 public interface UserService {
 
     /**
-     * Retrieves a user entity by their email address.
+     * Sets the online status for a user.
      *
-     * @param email The email address of the user.
-     * @return The User entity with the specified email address.
-     * @throws ResponseStatusException If a user with the specified email address is not found.
+     * @param gameName The game name of the user
+     * @param isOnline The online status to set
      */
-    User findOneByEmail(String email);
+    void setUserOnlineStatus(String gameName, boolean isOnline);
+
 
     /**
      * Finds a user by their unique identifier.
      *
      * @param userId the unique identifier of the user to retrieve
-     * @return a {@link CustomerDto} representing the found user
+     * @return a {@link UserDto} representing the found user
      */
-    UserDto findUserById(Long userId);
+    UserDto findUserById(UUID userId);
 
     /**
      * A method for retrieving all users implemented in UserServiceImpl class.
@@ -87,13 +89,13 @@ public interface UserService {
      *
      */
     void changePassword(PasswordChangeDto passwordChangeDto);
-
+    
     /**
      * A method for deleting user. It is implemented in UserServiceImpl class.
      *
      * @param userId parameter that is unique to entity
      */
-    void deleteUser(Long userId);
+    void deleteUser(UUID userId);
 
     /**
      * This method first calls the userRepository's findFilteredUsers method
@@ -106,4 +108,13 @@ public interface UserService {
      * @return a Page of UsersDto objects that match the specified query
      */
     Page<UserDto> findFilteredUsers(boolean isDeleted, UserFiltersQueryDto userFiltersQueryDto, Integer page, Integer pageSize);
+
+    /**
+     * Retrieves user profile information (email and gameName) by email address.
+     *
+     * @param email The email address of the user to retrieve profile for
+     * @return UserProfileDto containing email and gameName
+     * @throws ResponseStatusException If a user with the specified email address is not found
+     */
+    UserProfileDto getUserProfileByEmail(String email);
 }

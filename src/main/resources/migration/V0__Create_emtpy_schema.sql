@@ -1,0 +1,2 @@
+-- This SQL file creates an empty schema.
+-- It preserves the order of schema creation and execution of Flyway migration scripts.

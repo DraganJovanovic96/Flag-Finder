@@ -1,0 +1,57 @@
+spring:
+  datasource:
+    url: ${DATASOURCE_URL}
+    username: ${username}
+    password: ${password}
+    driver-class-name: org.postgresql.Driver
+  frontend:
+    url: ${FRONTEND_URL}
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            scope: openid, profile, email
+
+      resourceserver:
+        jwt:
+          issuer-uri: https://accounts.google.com
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        default_schema: public
+    database: postgresql
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+
+  flyway:
+    validate-on-migrate: true
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: 0
+    locations: classpath:migration
+
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${email}
+    password: ${email-password}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+application:
+  security:
+    jwt:
+      secret-key: ${secret-key}
+      expiration: 86400000 # a day
+      refresh-token:
+        expiration: 604800000 # 7 days

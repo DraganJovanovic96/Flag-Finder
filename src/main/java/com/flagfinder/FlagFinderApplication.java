@@ -7,7 +7,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class FlagFinderApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(FlagFinderApplication.class, args);
+		SpringApplication.run(com.flagfinder.FlagFinderApplication.class, args);
 	}
 
 }

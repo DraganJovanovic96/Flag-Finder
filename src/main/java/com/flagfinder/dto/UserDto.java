@@ -1,10 +1,8 @@
 package com.flagfinder.dto;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Data;
 
 import java.time.LocalDate;
-import java.util.List;
 
 /**
  * A Data Transfer Object (DTO) for transferring user data between layers of the application.
@@ -51,10 +49,4 @@ public class UserDto extends BaseEntityDto {
      * The URL can be used to retrieve the image and display it in an application or on webpage.
      */
     private String imageUrl;
-
-    /**
-     * Services connected to user.
-     */
-    @JsonIgnoreProperties("userDto")
-    private List<ServiceDto> serviceDtos;
 }

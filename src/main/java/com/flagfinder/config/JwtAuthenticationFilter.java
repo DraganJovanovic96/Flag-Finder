@@ -1,8 +1,8 @@
 package com.flagfinder.config;
 
 
-import com.mss.repository.TokenRepository;
-import com.mss.service.impl.JwtService;
+import com.flagfinder.repository.TokenRepository;
+import com.flagfinder.service.impl.JwtService;
 import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
