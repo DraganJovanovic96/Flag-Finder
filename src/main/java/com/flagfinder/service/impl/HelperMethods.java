@@ -15,6 +15,7 @@ public class HelperMethods {
         UserInfoDto userInfoDto = new UserInfoDto();
         userInfoDto.setAccuracyPercentage(gameService.accuracyPercentage(gameName));
         userInfoDto.setNumberOfWonGame(gameService.countOfWinningGames(gameName));
+        userInfoDto.setBestStreak(gameService.getBestWinningStreak(gameName));
 
         return userInfoDto;
     }

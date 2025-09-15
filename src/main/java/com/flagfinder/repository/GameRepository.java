@@ -69,4 +69,15 @@ AND SIZE(g.users) > 1
 AND g.winnerUserName IS NULL
 """)
     Long countDrawGamesByUser(@Param("userName") String userName);
+
+    @Query("""
+SELECT DISTINCT g FROM Game g
+JOIN g.users u
+WHERE LOWER(u.gameName) = LOWER(:userName)
+AND g.status = :status
+AND SIZE(g.users) > 1
+AND g.endedAt IS NOT NULL
+ORDER BY g.endedAt ASC
+""")
+    List<Game> findByUserAndStatusOrderByGameEndedAtAsc(@Param("userName") String userName, @Param("status") GameStatus status);
 }

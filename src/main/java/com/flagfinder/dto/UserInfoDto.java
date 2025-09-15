@@ -7,4 +7,5 @@ import lombok.Data;
 public class UserInfoDto {
     Long numberOfWonGame;
     int accuracyPercentage;
+    int bestStreak;
 }

@@ -590,7 +590,7 @@ public class GameServiceImpl implements GameService {
     }
 
     private boolean shouldEndRound(Round round) {
-        return round.getGuesses().size() >= 2; // Both players have guessed
+        return round.getGuesses().size() >= 2;
     }
 
     private void populateCurrentRoundData(GameDto dto, Game game) {
@@ -756,6 +756,29 @@ public class GameServiceImpl implements GameService {
         return totalGuesses > 0
                     ? (int) ((correctGuesses * 100.0) / totalGuesses)
                     : 0;
+    }
+
+    @Override
+    public int getBestWinningStreak(String userName) {
+        List<Game> allGames = gameRepository.findByUserAndStatusOrderByGameEndedAtAsc(userName, GameStatus.COMPLETED);
+        
+        if (allGames.isEmpty()) {
+            return 0;
+        }
+        
+        int maxStreak = 0;
+        int currentStreak = 0;
+        
+        for (Game game : allGames) {
+            if (userName.equalsIgnoreCase(game.getWinnerUserName())) {
+                currentStreak++;
+                maxStreak = Math.max(maxStreak, currentStreak);
+            } else {
+                currentStreak = 0;
+            }
+        }
+        
+        return maxStreak;
     }
 
     private GuessResponseDto submitSinglePlayerGuess(GuessRequestDto guessRequest, SinglePlayerGame singlePlayerGame) {

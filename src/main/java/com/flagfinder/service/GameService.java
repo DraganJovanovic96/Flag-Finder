@@ -76,6 +76,8 @@ public interface GameService {
 
     int accuracyPercentage (String userName);
 
+    int getBestWinningStreak(String userName);
+
     /**
      * Gets single player game by room ID
      */
