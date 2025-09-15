@@ -146,6 +146,12 @@ public class User extends BaseEntity implements UserDetails {
     private Role role;
 
     /**
+     * Whether the user is currently online (has an active WebSocket connection).
+     */
+    @Column(name = "is_online")
+    private Boolean isOnline = false;
+
+    /**
      * The tokens associated with the user.
      */
     @OneToMany(mappedBy = "user")

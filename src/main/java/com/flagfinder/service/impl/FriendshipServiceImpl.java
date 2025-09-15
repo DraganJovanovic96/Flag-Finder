@@ -72,7 +72,6 @@ public class FriendshipServiceImpl implements FriendshipService {
 
                 friendshipRepository.save(friendship);
 
-                // Send WebSocket notification to target user
                 try {
                     FriendNotificationDto notification = new FriendNotificationDto(
                             initiator.getGameName(),
@@ -85,7 +84,6 @@ public class FriendshipServiceImpl implements FriendshipService {
                             notification
                     );
                 } catch (Exception e) {
-                    // Log error but don't fail the request
                     System.err.println("Failed to send friend request WebSocket notification: " + e.getMessage());
                 }
 
@@ -111,11 +109,10 @@ public class FriendshipServiceImpl implements FriendshipService {
         friendship.setFriendshipStatus(friendRequestResponseDto.getFriendshipStatus());
         friendshipRepository.save(friendship);
 
-        // Send WebSocket notification to initiator about the response
         try {
             String action = friendRequestResponseDto.getFriendshipStatus() == FriendshipStatus.ACCEPTED ? "ACCEPTED" : "DECLINED";
             FriendNotificationDto notification = new FriendNotificationDto(
-                    target.getGameName(), // The person who responded
+                    target.getGameName(),
                     action,
                     friendRequestResponseDto.getFriendshipStatus().toString()
             );
@@ -125,7 +122,6 @@ public class FriendshipServiceImpl implements FriendshipService {
                     notification
             );
         } catch (Exception e) {
-            // Log error but don't fail the request
             System.err.println("Failed to send friend response WebSocket notification: " + e.getMessage());
         }
 
@@ -150,6 +146,23 @@ public class FriendshipServiceImpl implements FriendshipService {
         List<Friendship> friendships = resultPage.getContent();
 
         List<FriendshipDto> friendshipDtos = friendshipMapper.friendshipsToFriendshipDtos(friendships);
+        
+        // Add online status for each friend
+        for (FriendshipDto dto : friendshipDtos) {
+            // Determine which user is the friend (not the current user)
+            String friendUsername = dto.getInitiatorUserName().equals(user.getGameName()) 
+                ? dto.getTargetUserName() 
+                : dto.getInitiatorUserName();
+            
+            // Check if friend is online (has active WebSocket connection)
+            Optional<User> friendUser = userRepository.findOneByGameNameIgnoreCase(friendUsername);
+            if (friendUser.isPresent() && friendUser.get().getIsOnline() != null) {
+                dto.setOnline(friendUser.get().getIsOnline());
+            } else {
+                dto.setOnline(false);
+            }
+        }
+        
         return new PageImpl<>(friendshipDtos, PageRequest.of(page, pageSize), friendships.size());
     }
 
@@ -160,7 +173,6 @@ public class FriendshipServiceImpl implements FriendshipService {
         User friendUser = userRepository.findOneByGameNameIgnoreCase(friendUsername)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
-        // Find accepted friendship between the two users
         Optional<Friendship> friendship = friendshipRepository.findFriendshipBetweenUsers(currentUser, friendUser, FriendshipStatus.ACCEPTED);
 
         if (friendship.isEmpty()) {
@@ -170,10 +182,9 @@ public class FriendshipServiceImpl implements FriendshipService {
         Friendship friendshipToDelete = friendship.get();
         friendshipRepository.delete(friendshipToDelete);
 
-        // Send WebSocket notification to the friend about the removal
         try {
             FriendNotificationDto notification = new FriendNotificationDto(
-                    currentUser.getGameName(), // The person who removed the friend
+                    currentUser.getGameName(),
                     "REMOVED",
                     "REMOVED"
             );

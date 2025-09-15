@@ -8,4 +8,5 @@ public class FriendshipDto {
     private String targetUserName;
     private String initiatorUserName;
     private FriendshipStatus friendshipStatus;
+    private boolean isOnline;
 }

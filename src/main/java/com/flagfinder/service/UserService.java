@@ -20,13 +20,13 @@ import java.util.UUID;
 public interface UserService {
 
     /**
-     * Retrieves a user entity by their email address.
+     * Sets the online status for a user.
      *
-     * @param email The email address of the user.
-     * @return The User entity with the specified email address.
-     * @throws ResponseStatusException If a user with the specified email address is not found.
+     * @param gameName The game name of the user
+     * @param isOnline The online status to set
      */
-    User findOneByEmail(String email);
+    void setUserOnlineStatus(String gameName, boolean isOnline);
+
 
     /**
      * Finds a user by their unique identifier.
