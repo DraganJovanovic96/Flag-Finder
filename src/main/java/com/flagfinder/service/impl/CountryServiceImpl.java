@@ -80,6 +80,12 @@ public class CountryServiceImpl implements CountryService {
         Country country = countryRepository.findByNameOfCountyIgnoreCase(countryName)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Country not found"));
 
+        List<SinglePlayerRound> singlePlayerRoundsWithCountry = singlePlayerRoundRepository.findByCountry(country);
+        for (SinglePlayerRound singlePlayerRound : singlePlayerRoundsWithCountry) {
+            singlePlayerRound.setGuess(null);
+            singlePlayerRoundRepository.save(singlePlayerRound);
+        }
+
         guessRepository.deleteByGuessedCountry(country);
         
         List<Round> roundsWithCountry = roundRepository.findByCountry(country);
@@ -87,7 +93,6 @@ public class CountryServiceImpl implements CountryService {
             guessRepository.deleteByRound(round);
         }
         
-        List<SinglePlayerRound> singlePlayerRoundsWithCountry = singlePlayerRoundRepository.findByCountry(country);
         for (SinglePlayerRound singlePlayerRound : singlePlayerRoundsWithCountry) {
             guessRepository.deleteBySinglePlayerRound(singlePlayerRound);
         }

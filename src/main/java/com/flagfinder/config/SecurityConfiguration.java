@@ -115,7 +115,6 @@ public class SecurityConfiguration {
                         .requestMatchers(POST, "/api/v1/countries/load-countries-api").hasAnyAuthority(ADMIN_CREATE.name())
                         .requestMatchers("/api/v1/countries/load-us-states-api").hasAnyRole(ADMIN.name())
                         .requestMatchers(POST, "/api/v1/countries/load-us-states-api").hasAnyAuthority(ADMIN_CREATE.name())
-                        .requestMatchers(DELETE, "/api/v1/countries/*").hasAnyAuthority(ADMIN_DELETE.name())
 
                         .anyRequest()
                         .authenticated()
