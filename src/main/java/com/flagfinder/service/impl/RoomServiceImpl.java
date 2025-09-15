@@ -182,10 +182,13 @@ public class RoomServiceImpl implements RoomService {
           if (room.getHost().equals(user)) {
             if (room.getGuest() != null) {
                 try {
+                    RoomClosedDto roomClosedDto = new RoomClosedDto();
+                    roomClosedDto.setRoomId(room.getId().toString());
+                    roomClosedDto.setMessage("The room has been closed by the host.");
                     messagingTemplate.convertAndSendToUser(
                             room.getGuest().getGameName(),
                             "/queue/room-closed",
-                            "HOST_LEFT"
+                            roomClosedDto
                     );
                 } catch (Exception e) {
                     log.warn("Failed to notify guest {} about room close: {}", room.getGuest().getGameName(), e.getMessage());
