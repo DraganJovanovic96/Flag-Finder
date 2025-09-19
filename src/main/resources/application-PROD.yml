@@ -4,6 +4,13 @@ spring:
     username: ${username}
     password: ${password}
     driver-class-name: org.postgresql.Driver
+    hikari:
+     maximum-pool-size: 50
+     minimum-idle: 5
+     connection-timeout: 15000
+     idle-timeout: 300000
+     max-lifetime: 900000
+     leak-detection-threshold: 60000
   frontend:
     url: ${FRONTEND_URL}
   security:
@@ -26,6 +33,8 @@ spring:
       hibernate:
         format_sql: true
         default_schema: public
+        connection:
+          provider_disables_autocommit: true
     database: postgresql
     database-platform: org.hibernate.dialect.PostgreSQLDialect
 
@@ -47,6 +56,12 @@ spring:
           auth: true
           starttls:
             enable: true
+
+logging:
+  level:
+    com.zaxxer.hikari: DEBUG
+    com.zaxxer.hikari.HikariConfig: DEBUG
+    com.zaxxer.hikari.pool.HikariPool: DEBUG
 
 application:
   security:
