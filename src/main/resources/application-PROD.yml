@@ -33,8 +33,6 @@ spring:
       hibernate:
         format_sql: true
         default_schema: public
-        connection:
-          provider_disables_autocommit: true
     database: postgresql
     database-platform: org.hibernate.dialect.PostgreSQLDialect
 

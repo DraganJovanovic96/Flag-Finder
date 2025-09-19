@@ -586,12 +586,11 @@ public class CountryServiceImpl implements CountryService {
     }
     
     /**
-     * Retrieves a random country from any of the specified continents.
-     * If no continents are specified, returns a random country from all available.
-     * Uses database-level randomization for performance.
+     * Gets a random country from any of the specified continents.
+     * If continents list is null or empty, returns a random country from all continents.
      *
-     * @param continents list of continents to select from
-     * @return a randomly selected country
+     * @param continents list of continents to filter by, or null for all continents
+     * @return random country from any of the specified continents
      * @throws RuntimeException if no countries found or database query fails
      */
     @Override
@@ -618,6 +617,47 @@ public class CountryServiceImpl implements CountryService {
         } catch (Exception e) {
             log.error("Failed to get random country from continents: {}", continents, e);
             throw new RuntimeException("Failed to get random country from continents: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * Gets a random country from any of the specified continents, excluding already used countries.
+     * Ensures no duplicate countries appear in the same game.
+     *
+     * @param continents list of continents to filter by, or null for all continents
+     * @param excludedCountryIds list of country IDs to exclude from selection
+     * @return random country from specified continents not in the excluded list
+     * @throws RuntimeException if no countries found or database query fails
+     */
+    @Override
+    public Country getRandomCountryFromAnyContinentsExcluding(List<com.flagfinder.enumeration.Continent> continents, 
+                                                            List<UUID> excludedCountryIds) {
+        try {
+            if (excludedCountryIds == null || excludedCountryIds.isEmpty()) {
+                return getRandomCountryFromAnyContinents(continents);
+            }
+            
+            if (continents == null || continents.isEmpty()) {
+                Country randomCountry = countryRepository.findRandomCountryExcluding(excludedCountryIds);
+                if (randomCountry == null) {
+                    throw new RuntimeException("No countries found excluding already used countries");
+                }
+                return randomCountry;
+            }
+            
+            List<String> continentNames = continents.stream()
+                    .map(Enum::name)
+                    .toList();
+            
+            Country randomCountry = countryRepository.findRandomByAnyContinentInExcluding(continentNames, excludedCountryIds);
+            if (randomCountry == null) {
+                throw new RuntimeException("No countries found for continents: " + continents + " excluding already used countries");
+            }
+            
+            return randomCountry;
+        } catch (Exception e) {
+            log.error("Failed to get random country from continents: {} excluding: {}", continents, excludedCountryIds, e);
+            throw new RuntimeException("Failed to get random country from continents excluding used countries: " + e.getMessage(), e);
         }
     }
     

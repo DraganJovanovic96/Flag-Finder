@@ -464,12 +464,16 @@ public class GameServiceImpl implements GameService {
      * @param continents the list of continents to select countries from, or null for all
      */
     private void startNewRound(Game game, int roundNumber, List<com.flagfinder.enumeration.Continent> continents) {
+
+        List<UUID> usedCountryIds = game.getRounds().stream()
+                .map(round -> round.getCountry().getId())
+                .toList();
         
         Country randomCountry;
         if (continents != null && !continents.isEmpty()) {
-            randomCountry = countryService.getRandomCountryFromAnyContinents(continents);
+            randomCountry = countryService.getRandomCountryFromAnyContinentsExcluding(continents, usedCountryIds);
         } else {
-            randomCountry = countryService.getRandomCountryFromAnyContinents(null);
+            randomCountry = countryService.getRandomCountryFromAnyContinentsExcluding(null, usedCountryIds);
         }
 
         Round round = new Round();
@@ -523,11 +527,16 @@ public class GameServiceImpl implements GameService {
      */
     private void startNewSinglePlayerRound(SinglePlayerGame singlePlayerGame, int roundNumber, List<com.flagfinder.enumeration.Continent> continents) {
 
+        // Get already used countries in this game to avoid duplicates
+        List<UUID> usedCountryIds = singlePlayerGame.getRounds().stream()
+                .map(round -> round.getCountry().getId())
+                .toList();
+
         Country randomCountry;
         if (continents != null && !continents.isEmpty()) {
-            randomCountry = countryService.getRandomCountryFromAnyContinents(continents);
+            randomCountry = countryService.getRandomCountryFromAnyContinentsExcluding(continents, usedCountryIds);
         } else {
-            randomCountry = countryService.getRandomCountryFromAnyContinents(null);
+            randomCountry = countryService.getRandomCountryFromAnyContinentsExcluding(null, usedCountryIds);
         }
 
         SinglePlayerRound singlePlayerRound = new SinglePlayerRound();
