@@ -147,4 +147,40 @@ public interface CountryRepository extends JpaRepository<Country, UUID> {
             nativeQuery = true
     )
     Country findRandomByAnyContinentIn(@Param("continents") List<String> continents);
+    
+    /**
+     * Finds a random country excluding already used countries in the game.
+     * Useful for ensuring no duplicate countries appear in the same game.
+     *
+     * @param excludedCountryIds list of country IDs to exclude from selection
+     * @return a random Country not in the excluded list
+     */
+    @Query(
+            value = "SELECT c.* " +
+                    "FROM countries c " +
+                    "WHERE c.id NOT IN :excludedCountryIds " +
+                    "ORDER BY RANDOM() LIMIT 1",
+            nativeQuery = true
+    )
+    Country findRandomCountryExcluding(@Param("excludedCountryIds") List<UUID> excludedCountryIds);
+    
+    /**
+     * Finds a random country from specified continents excluding already used countries.
+     * Combines continent filtering with exclusion of previously used countries.
+     *
+     * @param continents list of continent names to choose from
+     * @param excludedCountryIds list of country IDs to exclude from selection
+     * @return a random Country from specified continents not in the excluded list
+     */
+    @Query(
+            value = "SELECT c.* " +
+                    "FROM countries c " +
+                    "JOIN country_continents cc ON c.id = cc.country_id " +
+                    "WHERE cc.continent IN :continents " +
+                    "AND c.id NOT IN :excludedCountryIds " +
+                    "ORDER BY RANDOM() LIMIT 1",
+            nativeQuery = true
+    )
+    Country findRandomByAnyContinentInExcluding(@Param("continents") List<String> continents, 
+                                               @Param("excludedCountryIds") List<UUID> excludedCountryIds);
 }

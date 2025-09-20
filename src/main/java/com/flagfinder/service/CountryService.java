@@ -48,13 +48,26 @@ public interface CountryService {
     List<Country> getCountriesByAnyContinents(List<com.flagfinder.enumeration.Continent> continents);
     
     /**
-     * Gets a random country from specified continents (OR logic)
-     * 
-     * @param continents list of continents to choose from
+     * Gets a random country from any of the specified continents.
+     * If continents list is null or empty, returns a random country from all continents.
+     *
+     * @param continents list of continents to filter by, or null for all continents
      * @return random country from any of the specified continents
      * @throws RuntimeException if no country found or filtering fails
      */
     Country getRandomCountryFromAnyContinents(List<com.flagfinder.enumeration.Continent> continents);
+    
+    /**
+     * Gets a random country from any of the specified continents, excluding already used countries.
+     * Ensures no duplicate countries appear in the same game.
+     *
+     * @param continents list of continents to filter by, or null for all continents
+     * @param excludedCountryIds list of country IDs to exclude from selection
+     * @return random country from specified continents not in the excluded list
+     * @throws RuntimeException if no country found or filtering fails
+     */
+    Country getRandomCountryFromAnyContinentsExcluding(List<com.flagfinder.enumeration.Continent> continents, 
+                                                      List<UUID> excludedCountryIds);
     
     /**
      * Gets a country by ID
