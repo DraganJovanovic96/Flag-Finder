@@ -4,6 +4,13 @@ spring:
     username: ${username}
     password: ${password}
     driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 8
+      minimum-idle: 3
+      connection-timeout: 20000
+      idle-timeout: 300000
+      max-lifetime: 1200000
+      leak-detection-threshold: 60000
   frontend:
     url: ${FRONTEND_URL}
   security:
@@ -20,7 +27,7 @@ spring:
           issuer-uri: https://accounts.google.com
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: create-drop
     show-sql: false
     properties:
       hibernate:
